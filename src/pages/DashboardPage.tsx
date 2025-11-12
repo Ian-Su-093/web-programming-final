@@ -87,17 +87,12 @@ export function DashboardPage() {
   const mouseMoveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Calculate statistics
-  const totalProjects = mockProjects.length
-  const step1Count = mockProjects.filter((p) => p.currentStep === "1").length
+  const totalProjects = mockProjects.filter((p) => p.currentStep !== "1").length
   const step2Count = mockProjects.filter((p) => p.currentStep === "2").length
   const step3Count = mockProjects.filter((p) => p.currentStep === "3").length
   const step4Count = mockProjects.filter((p) => p.currentStep === "4").length
 
   // Group projects by step and sort by updated date (newest first)
-  const step1Projects = mockProjects
-    .filter((p) => p.currentStep === "1")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-
   const step2Projects = mockProjects
     .filter((p) => p.currentStep === "2")
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
@@ -141,9 +136,7 @@ export function DashboardPage() {
 
   const handleProjectClick = (project: Project) => {
     // Navigate based on the project's current step
-    if (project.currentStep === "1") {
-      navigate(`/${project.id}/upload`)
-    } else if (project.currentStep === "2") {
+    if (project.currentStep === "2") {
       navigate(`/${project.id}/outline`)
     } else if (project.currentStep === "3") {
       navigate(`/${project.id}/web-design`)
@@ -393,13 +386,11 @@ export function DashboardPage() {
 
   const getStepColor = (step: string) => {
     switch (step) {
-      case "Step 1: Upload":
-        return "#61AFEF"
-      case "Step 2: Outline":
+      case "Outline stage":
         return "#E5C07B"
-      case "Step 3: Design":
+      case "Design stage":
         return "#56B6C2"
-      case "Step 4: Deployed":
+      case "Deployed":
         return "#8DB472"
       default:
         return "#9DA5B4"
@@ -410,7 +401,7 @@ export function DashboardPage() {
     if (projects.length === 0) return null
 
     const stepColor = getStepColor(title)
-    const isDeployed = title === "Step 4: Deployed"
+    const isDeployed = title === "Deployed"
 
     return (
       <div>
@@ -482,7 +473,7 @@ export function DashboardPage() {
       </header>
 
       {/* Main Content Area with Side Panel */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" style={{ scrollbarGutter: 'stable' }}>
         <div className="mx-auto max-w-7xl">
           <div className="flex h-full">
             {/* Left Panel - No box, no border */}
@@ -592,8 +583,8 @@ export function DashboardPage() {
                     </section>
 
                     {/* Statistics Section */}
-                    <section className="flex flex-wrap gap-6">
-                      <div className={`rounded-2xl border-2 border-[#C678DD] ${getCardBg()} p-6 w-full md:w-full xl:w-auto xl:flex-1 xl:min-w-0 overflow-hidden`}>
+                    <section className="grid grid-cols-2 xl:grid-cols-4 gap-6">
+                      <div className={`rounded-2xl border-2 border-[#C678DD] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
                           onMouseEnter={(e) => handleMouseEnter(e, "Total Projects")}
@@ -607,28 +598,13 @@ export function DashboardPage() {
                           onMouseLeave={handleMouseLeave}
                         >{totalProjects}</p>
                       </div>
-                      <div className={`w-px ${theme === "light" ? "bg-gray-200" : "bg-[#3E4451]"} self-stretch hidden xl:block`} />
-                      <div className={`rounded-2xl border-2 border-[#61AFEF] ${getCardBg()} p-6 flex-1 min-w-[calc(50%-12px)] md:flex-1 md:min-w-0 xl:flex-1 xl:min-w-0 overflow-hidden`}>
+                      <div className={`rounded-2xl border-2 border-[#E5C07B] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Step 1: Upload")}
-                          onMouseMove={(e) => handleMouseMove(e, "Step 1: Upload")}
+                          onMouseEnter={(e) => handleMouseEnter(e, "Outline stage")}
+                          onMouseMove={(e) => handleMouseMove(e, "Outline stage")}
                           onMouseLeave={handleMouseLeave}
-                        >Step 1: Upload</p>
-                        <p
-                          className="mt-4 text-4xl font-semibold text-[#61AFEF] whitespace-nowrap truncate"
-                          onMouseEnter={(e) => handleMouseEnter(e, step1Count.toString())}
-                          onMouseMove={(e) => handleMouseMove(e, step1Count.toString())}
-                          onMouseLeave={handleMouseLeave}
-                        >{step1Count}</p>
-                      </div>
-                      <div className={`rounded-2xl border-2 border-[#E5C07B] ${getCardBg()} p-6 flex-1 min-w-[calc(50%-12px)] md:flex-1 md:min-w-0 xl:flex-1 xl:min-w-0 overflow-hidden`}>
-                        <p
-                          className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Step 2: Outline")}
-                          onMouseMove={(e) => handleMouseMove(e, "Step 2: Outline")}
-                          onMouseLeave={handleMouseLeave}
-                        >Step 2: Outline</p>
+                        >Outline stage</p>
                         <p
                           className="mt-4 text-4xl font-semibold text-[#E5C07B] whitespace-nowrap truncate"
                           onMouseEnter={(e) => handleMouseEnter(e, step2Count.toString())}
@@ -636,13 +612,13 @@ export function DashboardPage() {
                           onMouseLeave={handleMouseLeave}
                         >{step2Count}</p>
                       </div>
-                      <div className={`rounded-2xl border-2 border-[#56B6C2] ${getCardBg()} p-6 flex-1 min-w-[calc(50%-12px)] md:flex-1 md:min-w-0 xl:flex-1 xl:min-w-0 overflow-hidden`}>
+                      <div className={`rounded-2xl border-2 border-[#56B6C2] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Step 3: Design")}
-                          onMouseMove={(e) => handleMouseMove(e, "Step 3: Design")}
+                          onMouseEnter={(e) => handleMouseEnter(e, "Design stage")}
+                          onMouseMove={(e) => handleMouseMove(e, "Design stage")}
                           onMouseLeave={handleMouseLeave}
-                        >Step 3: Design</p>
+                        >Design stage</p>
                         <p
                           className="mt-4 text-4xl font-semibold text-[#56B6C2] whitespace-nowrap truncate"
                           onMouseEnter={(e) => handleMouseEnter(e, step3Count.toString())}
@@ -650,13 +626,13 @@ export function DashboardPage() {
                           onMouseLeave={handleMouseLeave}
                         >{step3Count}</p>
                       </div>
-                      <div className={`rounded-2xl border-2 border-[#8DB472] ${getCardBg()} p-6 flex-1 min-w-[calc(50%-12px)] md:flex-1 md:min-w-0 xl:flex-1 xl:min-w-0 overflow-hidden`}>
+                      <div className={`rounded-2xl border-2 border-[#8DB472] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Step 4: Deployed")}
-                          onMouseMove={(e) => handleMouseMove(e, "Step 4: Deployed")}
+                          onMouseEnter={(e) => handleMouseEnter(e, "Deployed")}
+                          onMouseMove={(e) => handleMouseMove(e, "Deployed")}
                           onMouseLeave={handleMouseLeave}
-                        >Step 4: Deployed</p>
+                        >Deployed</p>
                         <p
                           className="mt-4 text-4xl font-semibold text-[#8DB472] whitespace-nowrap truncate"
                           onMouseEnter={(e) => handleMouseEnter(e, step4Count.toString())}
@@ -679,19 +655,15 @@ export function DashboardPage() {
                         </button>
                       </div>
                       <div className="space-y-6">
-                        {renderProjectSection("Step 1: Upload", step1Projects)}
-                        {step1Projects.length > 0 && (step2Projects.length > 0 || step3Projects.length > 0 || step4Projects.length > 0) && (
-                          <div className={`border-t ${getBorderColor()}`} />
-                        )}
-                        {renderProjectSection("Step 2: Outline", step2Projects)}
+                        {renderProjectSection("Outline stage", step2Projects)}
                         {step2Projects.length > 0 && (step3Projects.length > 0 || step4Projects.length > 0) && (
                           <div className={`border-t ${getBorderColor()}`} />
                         )}
-                        {renderProjectSection("Step 3: Design", step3Projects)}
+                        {renderProjectSection("Design stage", step3Projects)}
                         {step3Projects.length > 0 && step4Projects.length > 0 && (
                           <div className={`border-t ${getBorderColor()}`} />
                         )}
-                        {renderProjectSection("Step 4: Deployed", step4Projects)}
+                        {renderProjectSection("Deployed", step4Projects)}
                       </div>
                     </section>
                   </>
