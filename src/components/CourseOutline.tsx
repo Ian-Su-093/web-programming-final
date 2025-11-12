@@ -110,12 +110,12 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <div className="mb-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-medium text-[#5B6B83] tracking-[0.3rem]">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                            <span className="flex-shrink-0 text-xs font-medium text-[#5B6B83] tracking-[0.3rem]">
                               MODULE {moduleNumber}
                             </span>
                             {item.week && (
-                              <span className="text-xs font-medium text-[#8DB472] bg-[#1C212C] tracking-wider px-2 py-1 rounded-full">
+                              <span className="w-full sm:w-auto text-[10px] font-medium text-[#8DB472] bg-[#1C212C] tracking-wider px-2 py-1 rounded-full text-center sm:text-left">
                                 WEEK {item.week}
                               </span>
                             )}
