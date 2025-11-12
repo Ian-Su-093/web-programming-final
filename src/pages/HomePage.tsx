@@ -90,7 +90,7 @@ export function HomePage() {
   }
 
   const handleGetStartedClick = () => {
-    navigate("/dashboard")
+    navigate("/user/dashboard")
   }
 
   return (

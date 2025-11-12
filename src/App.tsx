@@ -11,7 +11,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/user/dashboard" element={<DashboardPage />} />
+        <Route path="/user/preferences" element={<DashboardPage />} />
+        <Route path="/user/help-center" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<Navigate to="/user/dashboard" replace />} />
         <Route path="/:id/upload" element={<UploadPage />} />
         <Route path="/:id/outline" element={<OutlinePage />} />
         <Route path="/:id/web-design" element={<WebDesignPage />} />

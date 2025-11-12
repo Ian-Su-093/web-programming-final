@@ -84,7 +84,7 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
 
   const handleDashboard = () => {
     setShowUserMenu(false)
-    navigate("/dashboard")
+    navigate("/user/dashboard")
   }
 
   const handleLogout = () => {
