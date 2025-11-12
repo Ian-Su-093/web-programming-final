@@ -1,20 +1,23 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, forwardRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { Menu, X, User, CheckCircle2, Circle, LogOut, LayoutDashboard } from "lucide-react"
 
 type SidebarProps = {
   currentStep?: 1 | 2 | 3
   onStepSelect?: (step: 1 | 2 | 3) => void
+  isCollapsed?: boolean
+  onCollapseChange?: (collapsed: boolean) => void
 }
 
 type StepState = "completed" | "current" | "upcoming"
 
-export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(true)
+export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep = 2, onStepSelect, isCollapsed: externalIsCollapsed, onCollapseChange }, ref) => {
+  const [internalIsCollapsed, setInternalIsCollapsed] = useState(true)
+  const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
-  
+
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -130,13 +133,23 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
   }
 
   const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed)
+    const newCollapsed = !isCollapsed
+    if (onCollapseChange) {
+      onCollapseChange(newCollapsed)
+    } else {
+      setInternalIsCollapsed(newCollapsed)
+    }
   }
 
   const handleUserClick = () => {
     // If sidebar is collapsed, expand it first
     if (isCollapsed) {
-      setIsCollapsed(false)
+      const newCollapsed = false
+      if (onCollapseChange) {
+        onCollapseChange(newCollapsed)
+      } else {
+        setInternalIsCollapsed(newCollapsed)
+      }
       // Show menu after sidebar expands
       setTimeout(() => {
         setShowUserMenu(true)
@@ -197,8 +210,12 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
     }
   }, [showUserMenu])
 
+  const handleSidebarClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+  }
+
   return (
-    <div className={`h-screen ${getSidebarBg()} border-r ${getBorderColor()} flex flex-col transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"}`}>
+    <div ref={ref} onClick={handleSidebarClick} className={`h-screen ${getSidebarBg()} border-r ${getBorderColor()} flex flex-col transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"}`}>
       {/* Hamburger Menu */}
       <div className="relative p-4">
         <button
@@ -234,11 +251,10 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
           <button
             onClick={() => handleStepClick(2)}
             disabled={isStepDisabled(2)}
-            className={`w-full flex items-center gap-3 rounded-md p-2 transition-colors ${
-              isStepDisabled(2)
-                ? "cursor-not-allowed opacity-50"
-                : `${getHoverBg()} cursor-pointer`
-            }`}
+            className={`w-full flex items-center gap-3 rounded-md p-2 transition-colors ${isStepDisabled(2)
+              ? "cursor-not-allowed opacity-50"
+              : `${getHoverBg()} cursor-pointer`
+              }`}
             aria-label="Modify course outline"
           >
             {getIcon(step2State)}
@@ -252,11 +268,10 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
           <button
             onClick={() => handleStepClick(3)}
             disabled={isStepDisabled(3)}
-            className={`w-full flex items-center gap-3 rounded-md p-2 transition-colors ${
-              isStepDisabled(3)
-                ? "cursor-not-allowed opacity-50"
-                : `${getHoverBg()} cursor-pointer`
-            }`}
+            className={`w-full flex items-center gap-3 rounded-md p-2 transition-colors ${isStepDisabled(3)
+              ? "cursor-not-allowed opacity-50"
+              : `${getHoverBg()} cursor-pointer`
+              }`}
           >
             {getIcon(step3State)}
             <span className={getStepTextClasses(step3State)}>Modify website layout</span>
@@ -278,11 +293,10 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
           <button
             onClick={() => handleStepClick(2)}
             disabled={isStepDisabled(2)}
-            className={`rounded-md p-1 transition-colors ${
-              isStepDisabled(2)
-                ? "cursor-not-allowed opacity-50"
-                : `${getHoverBg()} cursor-pointer`
-            }`}
+            className={`rounded-md p-1 transition-colors ${isStepDisabled(2)
+              ? "cursor-not-allowed opacity-50"
+              : `${getHoverBg()} cursor-pointer`
+              }`}
             aria-label="Modify course outline"
           >
             {getCollapsedIcon(step2State)}
@@ -291,11 +305,10 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
           <button
             onClick={() => handleStepClick(3)}
             disabled={isStepDisabled(3)}
-            className={`rounded-md p-1 transition-colors ${
-              isStepDisabled(3)
-                ? "cursor-not-allowed opacity-50"
-                : `${getHoverBg()} cursor-pointer`
-            }`}
+            className={`rounded-md p-1 transition-colors ${isStepDisabled(3)
+              ? "cursor-not-allowed opacity-50"
+              : `${getHoverBg()} cursor-pointer`
+              }`}
             aria-label="Modify website layout"
           >
             {getCollapsedIcon(step3State)}
@@ -356,5 +369,6 @@ export function Sidebar({ currentStep = 2, onStepSelect }: SidebarProps) {
       </div>
     </div>
   )
-}
+})
 
+Sidebar.displayName = "Sidebar"

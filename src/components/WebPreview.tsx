@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronLeft, ChevronFirst, ChevronLast, Monitor, ExternalLink } from "lucide-react"
+import { ChevronFirst, ChevronLast, Monitor, ExternalLink } from "lucide-react"
 
 interface WebPreviewProps {
   onToggleChat: () => void
@@ -42,16 +42,6 @@ export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidd
   const getBgColor = () => {
     if (theme === "light") return "bg-gray-50"
     return "bg-[#1E2025]"
-  }
-
-  const getBorderColor = () => {
-    if (theme === "light") return "border-gray-200"
-    return "border-[#3E4451]"
-  }
-
-  const getTextColor = () => {
-    if (theme === "light") return "text-gray-800"
-    return "text-[#E0E0E0]"
   }
 
   const getMutedText = () => {

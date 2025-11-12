@@ -10,7 +10,9 @@ export function UploadPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   
@@ -199,11 +201,23 @@ export function UploadPage() {
     return `${sizeInMegabytes.toFixed(1)} MB`
   }
 
+  const handleMainContentClick = (e: React.MouseEvent) => {
+    if (!isSidebarCollapsed && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+      setIsSidebarCollapsed(true)
+    }
+  }
+
   return (
     <div className={`flex h-screen ${getBgColor()} overflow-hidden ${getTextColor()}`}>
-      <Sidebar currentStep={1} onStepSelect={(step) => step === 1 && id && navigate(`/${id}/outline`)} />
+      <Sidebar 
+        ref={sidebarRef}
+        currentStep={1} 
+        onStepSelect={(step) => step === 1 && id && navigate(`/${id}/outline`)}
+        isCollapsed={isSidebarCollapsed}
+        onCollapseChange={setIsSidebarCollapsed}
+      />
 
-      <main className="flex-1 flex flex-col items-center justify-center p-10 overflow-auto">
+      <main className="flex-1 flex flex-col items-center justify-center p-10 overflow-auto" onClick={handleMainContentClick}>
         <div className="w-full max-w-2xl">
           <header className="mb-8">
             <h1 className={`text-3xl font-semibold mb-3 ${getTextColor()}`}>Upload your course materials</h1>

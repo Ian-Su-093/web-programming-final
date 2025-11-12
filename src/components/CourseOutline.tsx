@@ -50,11 +50,6 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
     return "bg-[#1E2025]"
   }
 
-  const getBorderColor = () => {
-    if (theme === "light") return "border-gray-200"
-    return "border-[#3E4451]"
-  }
-
   const getTextColor = () => {
     if (theme === "light") return "text-gray-800"
     return "text-[#E0E0E0]"

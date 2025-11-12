@@ -102,16 +102,6 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
     return "bg-[#1E2025]"
   }
 
-  const getUserMessageBg = () => {
-    if (theme === "light") return "bg-blue-100 text-gray-800 border-blue-200"
-    return "bg-[#33365D] text-[#E0E0E0] border-[#444985]"
-  }
-
-  const getAssistantMessageBg = () => {
-    if (theme === "light") return "bg-gray-100 text-gray-800 border-gray-200"
-    return "bg-[#1D2434] text-[#E0E0E0] border-[#252C3C]"
-  }
-
   useEffect(() => {
     setEditedTitle(courseTitle || "Chat your way to a course outline")
   }, [courseTitle])

@@ -86,8 +86,10 @@ export function OutlinePage() {
   const [isChatHidden, setIsChatHidden] = useState(false)
   const [isSwapped, setIsSwapped] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   
@@ -272,9 +274,21 @@ export function OutlinePage() {
     setIsSwapped(!isSwapped)
   }
 
+  const handleMainContentClick = (e: React.MouseEvent) => {
+    if (!isSidebarCollapsed && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+      setIsSidebarCollapsed(true)
+    }
+  }
+
   return (
-    <div ref={containerRef} className={`flex h-screen ${getBgColor()} overflow-hidden`}>
-      <Sidebar currentStep={2} onStepSelect={handleStepSelect} />
+    <div ref={containerRef} className={`flex h-screen ${getBgColor()} overflow-hidden`} onClick={handleMainContentClick}>
+      <Sidebar 
+        ref={sidebarRef}
+        currentStep={2} 
+        onStepSelect={handleStepSelect}
+        isCollapsed={isSidebarCollapsed}
+        onCollapseChange={setIsSidebarCollapsed}
+      />
       
       <Modal
         isOpen={showConfirmModal}
