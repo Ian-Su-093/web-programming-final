@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { DashboardPage } from "@/pages/DashboardPage"
 import { HomePage } from "@/pages/HomePage"
+import { LoginPage } from "@/pages/LoginPage"
 import { OutlinePage } from "@/pages/OutlinePage"
 import { UploadPage } from "@/pages/UploadPage"
 import { WebDesignPage } from "@/pages/WebDesignPage"
@@ -11,6 +12,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/user/dashboard" element={<DashboardPage />} />
         <Route path="/user/preferences" element={<DashboardPage />} />
         <Route path="/user/help-center" element={<DashboardPage />} />

@@ -165,9 +165,9 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
   }
 
   const handleLogout = () => {
-    // Dummy logout function
-    console.log("Logout clicked")
     setShowUserMenu(false)
+    // Redirect to login page
+    navigate("/login")
   }
 
   const handleStepClick = (step: 1 | 2 | 3) => {

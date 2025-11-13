@@ -150,8 +150,8 @@ export function DashboardPage() {
 
   const handleLogout = () => {
     setShowUserMenu(false)
-    console.log("Logout clicked")
-    // Add logout logic here
+    // Redirect to login page
+    navigate("/login")
   }
 
   const handleDeleteAccount = () => {
