@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -172,7 +172,14 @@ export function LoginPage() {
               Continue with GitHub
             </Button>
             <p className={`text-xs text-center ${getTextColor()} transition-colors mt-4`}>
-              By continuing, you agree to our Terms of Service and Privacy Policy
+              By continuing, you agree to our{" "}
+              <Link to="/terms-of-service" className="text-blue-500 hover:underline">
+                Terms of Service
+              </Link>
+              {" "}and{" "}
+              <Link to="/privacy-policy" className="text-blue-500 hover:underline">
+                Privacy Policy
+              </Link>
             </p>
           </CardContent>
         </Card>

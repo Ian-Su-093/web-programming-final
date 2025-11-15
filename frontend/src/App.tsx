@@ -6,6 +6,8 @@ import { OutlinePage } from "@/pages/OutlinePage"
 import { UploadPage } from "@/pages/UploadPage"
 import { WebDesignPage } from "@/pages/WebDesignPage"
 import { FullPageWebPreviewPage } from "@/pages/FullPageWebPreviewPage"
+import { TermsOfServicePage } from "@/pages/TermsOfServicePage"
+import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage"
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/user/dashboard" element={<DashboardPage />} />
         <Route path="/user/preferences" element={<DashboardPage />} />
         <Route path="/user/help-center" element={<DashboardPage />} />

@@ -114,6 +114,11 @@ export function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70" />
         <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
           <div className="rounded-3xl border border-white/20 bg-gradient-to-br from-white/15 via-white/10 to-white/5 px-8 py-12 shadow-2xl shadow-blue-500/20 backdrop-blur-md">
+            <div className="mb-4">
+              <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                Course Craft
+              </h2>
+            </div>
             <p className="text-sm uppercase tracking-[0.4em] text-blue-400">Learn, Build, Grow</p>
             <h1 className="mt-6 bg-gradient-to-r from-white via-blue-100 to-cyan-100 bg-clip-text text-5xl font-semibold leading-tight text-transparent sm:text-6xl">
               Craft courses that empower modern learners
