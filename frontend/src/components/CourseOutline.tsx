@@ -13,7 +13,7 @@ interface CourseOutlineProps {
 
 export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwapped = false }: CourseOutlineProps) {
   const { t } = useTranslation()
-  const { title, outline } = courseData
+  const { outline } = courseData
   // Initialize with all modules expanded
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
     new Set(outline.map((item) => item.id))
