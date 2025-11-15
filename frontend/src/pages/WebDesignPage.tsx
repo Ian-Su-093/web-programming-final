@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import type { MouseEvent as ReactMouseEvent } from "react"
 import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
@@ -36,6 +37,7 @@ const mockMessages: Message[] = [
 ]
 
 export function WebDesignPage() {
+  const { t } = useTranslation()
   const [messages, setMessages] = useState<Message[]>(mockMessages)
   const [isLoading, setIsLoading] = useState(false)
   const [chatWidth, setChatWidth] = useState(66.67)
@@ -145,11 +147,11 @@ export function WebDesignPage() {
 
   const getModalMessage = () => {
     if (stepToNavigate === 1) {
-      return "By doing so, you will have to re-design the course outline and web layout again."
+      return t("outline.webDesign.modal.uploadToOutline")
     } else if (stepToNavigate === 2) {
-      return "By doing so, you will have to re-design the web layout outline again."
+      return t("outline.webDesign.modal.outlineToLayout")
     }
-    return "By doing so, you will have to re-design the course outline again."
+    return t("outline.modal.message")
   }
 
   const handleSendMessage = async (content: string) => {
@@ -239,8 +241,8 @@ export function WebDesignPage() {
         onClose={handleCancel}
         onConfirm={handleConfirm}
         message={getModalMessage()}
-        confirmText="Continue"
-        cancelText="Cancel"
+        confirmText={t("outline.webDesign.modal.continue")}
+        cancelText={t("outline.webDesign.modal.cancel")}
       />
 
       {!isChatHidden && !isPreviewHidden && (

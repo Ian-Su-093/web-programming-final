@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Send, Bot, ArrowLeftRight, Paperclip, PanelRightOpen, PanelLeftOpen, Pencil, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types"
@@ -17,9 +18,10 @@ interface ChatSectionProps {
 }
 
 export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, onShowPreview, isSwapped = false, isPreviewHidden = false, courseTitle, onCourseTitleChange, isEditable = false }: ChatSectionProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState("")
   const [isEditingTitle, setIsEditingTitle] = useState(false)
-  const [editedTitle, setEditedTitle] = useState(courseTitle || "Chat your way to a course outline")
+  const [editedTitle, setEditedTitle] = useState(courseTitle || t("outline.chat.defaultTitle"))
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -103,7 +105,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
   }
 
   useEffect(() => {
-    setEditedTitle(courseTitle || "Chat your way to a course outline")
+    setEditedTitle(courseTitle || t("outline.chat.defaultTitle"))
   }, [courseTitle])
 
   const scrollToBottom = () => {
@@ -167,7 +169,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
   }
 
   const handleCancelEdit = () => {
-    setEditedTitle(courseTitle || "Chat your way to a course outline")
+    setEditedTitle(courseTitle || t("outline.chat.defaultTitle"))
     setIsEditingTitle(false)
   }
 
@@ -179,7 +181,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
     }
   }
 
-  const displayTitle = courseTitle || "Chat your way to a course outline"
+  const displayTitle = courseTitle || t("outline.chat.defaultTitle")
 
   return (
     <div className={`flex flex-col h-screen ${getBgColor()}`}>
@@ -189,7 +191,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
           <button
             onClick={onSwapPanels}
             className={`p-2 ${getHoverBg()} rounded-md transition-colors cursor-pointer`}
-            aria-label="Swap panels"
+            aria-label={t("outline.chat.swapPanels")}
           >
             <ArrowLeftRight className={`w-5 h-5 ${getMutedText()}`} />
           </button>
@@ -198,8 +200,8 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
           <button
             onClick={onShowPreview}
             className={`p-2 ${getHoverBg()} rounded-md transition-colors cursor-pointer`}
-            aria-label="Show preview"
-            title="Show preview"
+            aria-label={t("outline.chat.showPreview")}
+            title={t("outline.chat.showPreview")}
           >
             <PanelLeftOpen className={`w-5 h-5 ${getMutedText()}`} />
           </button>
@@ -219,16 +221,16 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
               <button
                 onClick={handleSaveTitle}
                 className={`p-1 ${getHoverBg()} rounded transition-colors cursor-pointer`}
-                aria-label="Save title"
-                title="Save title"
+                aria-label={t("outline.chat.saveTitle")}
+                title={t("outline.chat.saveTitle")}
               >
                 <Check className="w-4 h-4 text-[#8DB472]" />
               </button>
               <button
                 onClick={handleCancelEdit}
                 className={`p-1 ${getHoverBg()} rounded transition-colors cursor-pointer`}
-                aria-label="Cancel edit"
-                title="Cancel edit"
+                aria-label={t("outline.chat.cancelEdit")}
+                title={t("outline.chat.cancelEdit")}
               >
                 <X className="w-4 h-4 text-[#E06C75]" />
               </button>
@@ -242,8 +244,8 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
                 <button
                   onClick={handleEditTitle}
                   className={`p-1 ${getHoverBg()} rounded transition-colors cursor-pointer`}
-                  aria-label="Edit course title"
-                  title="Edit course title"
+                  aria-label={t("outline.chat.editTitle")}
+                  title={t("outline.chat.editTitle")}
                 >
                   <Pencil className={`w-4 h-4 ${getMutedText()}`} />
                 </button>
@@ -266,7 +268,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
             <button
               onClick={onSwapPanels}
               className={`p-2 ${getHoverBg()} rounded-md transition-colors cursor-pointer`}
-              aria-label="Swap panels"
+              aria-label={t("outline.chat.swapPanels")}
             >
               <ArrowLeftRight className={`w-5 h-5 ${getMutedText()}`} />
             </button>
@@ -281,7 +283,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
             <div className="text-center space-y-2">
               <Bot className={`w-12 h-12 mx-auto ${getMutedText()} mb-4`} />
               <p className={`${getMutedText()} text-lg`}>
-                Start a conversation to plan your course
+                {t("outline.chat.emptyState")}
               </p>
             </div>
           </div>
@@ -307,7 +309,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"} uppercase`}>
-                        {message.role === "user" ? "YOU" : "ASSISTANT"}
+                        {message.role === "user" ? t("outline.chat.you") : t("outline.chat.assistant")}
                       </span>
                       <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"}`}>
                         {formatTime(message.timestamp)}
@@ -326,7 +328,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
                   <div className={`${theme === "light" ? "bg-gray-100 text-gray-800 border-gray-200" : "bg-[#1D2434] text-[#E0E0E0] border-[#252C3C]"} border rounded-lg px-4 py-3`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"} uppercase`}>
-                        ASSISTANT
+                        {t("outline.chat.assistant")}
                       </span>
                       <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"}`}>
                         {formatTime(new Date())}
@@ -362,14 +364,14 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
               type="button"
               onClick={handlePaperclipClick}
               className={`absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-2 ${theme === "light" ? "hover:bg-gray-200" : "hover:bg-[#3E4451]/50"} rounded-md transition-colors z-10 cursor-pointer`}
-              aria-label="Upload PDF file"
+              aria-label={t("outline.chat.uploadPdf")}
             >
               <Paperclip className={`w-5 h-5 ${getMutedText()}`} />
             </button>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask for a new module, change tone, or request more detail..."
+              placeholder={t("outline.chat.placeholder")}
               disabled={isLoading}
               rows={1}
               className={`w-full rounded-xl border ${getInputBorder()} ${getInputBg()} pl-14 pr-5 py-4 text-sm ${getInputText()} ${getInputPlaceholder()} focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 resize-none`}
@@ -380,7 +382,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
             disabled={isLoading || !input.trim()}
             className={`px-4 ${theme === "light" ? "bg-gray-800 text-white hover:bg-gray-700" : "bg-[#E0E0E0] text-[#282C34] hover:bg-[#C0C0C0]"}`}
           >
-            <span className="sr-only">Send</span>
+            <span className="sr-only">{t("outline.chat.send")}</span>
             <Send className="w-4 h-4" />
           </Button>
         </form>

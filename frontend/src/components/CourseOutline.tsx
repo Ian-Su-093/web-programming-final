@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { BookOpen, ChevronDown, ChevronLeft, ChevronFirst, ChevronLast } from "lucide-react"
 import type { CourseData } from "@/types"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -11,6 +12,7 @@ interface CourseOutlineProps {
 }
 
 export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwapped = false }: CourseOutlineProps) {
+  const { t } = useTranslation()
   const { title, outline } = courseData
   // Initialize with all modules expanded
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
@@ -112,7 +114,7 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
               <button
                 onClick={onToggleChat}
                 className={`${getHoverBg()} rounded p-1 transition-colors`}
-                aria-label="Toggle chat section"
+                aria-label={t("outline.courseOutline.toggleChat")}
               >
                 {isChatHidden ? (
                   <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
@@ -122,13 +124,13 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
               </button>
             )}
             <h2 className={`text-sm font-semibold ${getMutedText()} uppercase tracking-[0.4rem]`}>
-              Course Outline
+              {t("outline.courseOutline.title")}
             </h2>
             {isSwapped && (
               <button
                 onClick={onToggleChat}
                 className={`${getHoverBg()} rounded p-1 transition-colors`}
-                aria-label="Toggle chat section"
+                aria-label={t("outline.courseOutline.toggleChat")}
               >
                 {isChatHidden ? (
                   <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
@@ -158,7 +160,7 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
               <div className="text-center py-8">
                 <BookOpen className={`w-12 h-12 mx-auto ${theme === "light" ? "text-gray-400" : "text-[#5C6370]"} mb-4`} />
                 <p className={theme === "light" ? "text-gray-500" : "text-[#5C6370]"}>
-                  Course outline will appear here as you chat
+                  {t("outline.courseOutline.emptyState")}
                 </p>
               </div>
             </CardContent>
@@ -180,11 +182,11 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
                         <div className="mb-3">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
                             <span className={`flex-shrink-0 text-xs font-medium ${getMutedText()} tracking-[0.3rem]`}>
-                              MODULE {moduleNumber}
+                              {t("outline.courseOutline.module")} {moduleNumber}
                             </span>
                             {item.week && (
                               <span className={`w-full sm:w-auto text-[10px] font-medium text-[#8DB472] ${theme === "light" ? "bg-green-50" : "bg-[#1C212C]"} tracking-wider px-2 py-1 rounded-full text-center sm:text-left`}>
-                                WEEK {item.week}
+                                {t("outline.courseOutline.week")} {item.week}
                               </span>
                             )}
                           </div>
@@ -205,7 +207,7 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
                       <button
                         onClick={() => toggleModule(item.id)}
                         className={`flex-shrink-0 w-6 h-6 rounded-full ${getHoverBg()} flex items-center justify-center transition-colors`}
-                        aria-label={isExpanded ? "Collapse module" : "Expand module"}
+                        aria-label={isExpanded ? t("outline.courseOutline.collapseModule") : t("outline.courseOutline.expandModule")}
                       >
                         {isExpanded ? (
                           <ChevronDown className={`w-4 h-4 ${theme === "light" ? "text-gray-500" : "text-[#5C6370]"}`} />

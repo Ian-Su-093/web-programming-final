@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Trash2, Pencil, Check, X, Sun, Moon, Monitor } from "lucide-react"
+import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Trash2, Pencil, Check, X, Sun, Moon, Monitor, Languages } from "lucide-react"
 import type { Project } from "@/types"
+import { useTranslation } from "react-i18next"
+import i18n from "@/i18n/config"
 
 // Mock projects data
 const mockProjects: Project[] = [
@@ -46,6 +48,7 @@ const mockProjects: Project[] = [
 export function DashboardPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useTranslation()
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   // Determine active tab from route
@@ -60,12 +63,12 @@ export function DashboardPage() {
   const getHeaderTitle = () => {
     switch (activeTab) {
       case "preferences":
-        return "Preferences"
+        return t("dashboard.preferences")
       case "help-center":
-        return "Help Center"
+        return t("dashboard.helpCenter")
       case "dashboard":
       default:
-        return "Dashboard"
+        return t("dashboard.title")
     }
   }
 
@@ -78,6 +81,11 @@ export function DashboardPage() {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
     return savedTheme || "dark"
   })
+  const [currentLanguage, setCurrentLanguage] = useState<string>(() => {
+    return localStorage.getItem("language") || "en"
+  })
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
+  const languageDropdownRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   // Tooltip state
@@ -188,6 +196,41 @@ export function DashboardPage() {
     setEditedUsername(username)
     setIsEditingUsername(false)
   }
+
+  // Handle language change
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang)
+    i18n.changeLanguage(lang)
+    localStorage.setItem("language", lang)
+    setShowLanguageDropdown(false)
+  }
+
+  // Sync language state with i18n on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("language") || "en"
+    setCurrentLanguage(savedLanguage)
+    i18n.changeLanguage(savedLanguage)
+  }, [])
+
+  // Close language dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        languageDropdownRef.current &&
+        !languageDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowLanguageDropdown(false)
+      }
+    }
+
+    if (showLanguageDropdown) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showLanguageDropdown])
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme)
@@ -385,23 +428,24 @@ export function DashboardPage() {
   }
 
   const getStepColor = (step: string) => {
-    switch (step) {
-      case "Outline stage":
-        return "#E5C07B"
-      case "Design stage":
-        return "#56B6C2"
-      case "Deployed":
-        return "#8DB472"
-      default:
-        return "#9DA5B4"
+    // Compare with translated strings
+    if (step === t("dashboard.statistics.outlineStage") || step === "Outline stage") {
+      return "#E5C07B"
     }
+    if (step === t("dashboard.statistics.designStage") || step === "Design stage") {
+      return "#56B6C2"
+    }
+    if (step === t("dashboard.statistics.deployed") || step === "Deployed") {
+      return "#8DB472"
+    }
+    return "#9DA5B4"
   }
 
   const renderProjectSection = (title: string, projects: Project[]) => {
     if (projects.length === 0) return null
 
     const stepColor = getStepColor(title)
-    const isDeployed = title === "Deployed"
+    const isDeployed = title === t("dashboard.statistics.deployed") || title === "Deployed"
 
     return (
       <div>
@@ -463,7 +507,7 @@ export function DashboardPage() {
                     className={`w-full flex items-center gap-3 px-4 py-2 ${getHoverBg()} transition-colors text-sm text-red-400 cursor-pointer`}
                   >
                     <LogOut className="w-4 h-4 text-red-400" />
-                    <span>Logout</span>
+                    <span>{t("dashboard.logout")}</span>
                   </button>
                 </div>
               </div>
@@ -486,7 +530,7 @@ export function DashboardPage() {
                   }`}
               >
                 <LayoutDashboard className="w-5 h-5" />
-                <span className={`text-sm ${activeTab === "dashboard" ? "font-semibold" : "font-medium"}`}>Dashboard</span>
+                <span className={`text-sm ${activeTab === "dashboard" ? "font-semibold" : "font-medium"}`}>{t("dashboard.title")}</span>
               </button>
               <button
                 onClick={() => navigate("/user/preferences")}
@@ -496,7 +540,7 @@ export function DashboardPage() {
                   }`}
               >
                 <Settings className="w-5 h-5" />
-                <span className={`text-sm ${activeTab === "preferences" ? "font-semibold" : "font-medium"}`}>Preferences</span>
+                <span className={`text-sm ${activeTab === "preferences" ? "font-semibold" : "font-medium"}`}>{t("dashboard.preferences")}</span>
               </button>
               <button
                 onClick={() => navigate("/user/help-center")}
@@ -506,7 +550,7 @@ export function DashboardPage() {
                   }`}
               >
                 <HelpCircle className="w-5 h-5" />
-                <span className={`text-sm ${activeTab === "help-center" ? "font-semibold" : "font-medium"}`}>Help Center</span>
+                <span className={`text-sm ${activeTab === "help-center" ? "font-semibold" : "font-medium"}`}>{t("dashboard.helpCenter")}</span>
               </button>
             </div>
 
@@ -542,14 +586,14 @@ export function DashboardPage() {
                                 <button
                                   onClick={handleSaveUsername}
                                   className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label="Save username"
+                                  aria-label={t("dashboard.save")}
                                 >
                                   <Check className="w-5 h-5 text-[#8DB472]" />
                                 </button>
                                 <button
                                   onClick={handleCancelEditUsername}
                                   className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label="Cancel edit"
+                                  aria-label={t("dashboard.cancel")}
                                 >
                                   <X className={`w-5 h-5 ${getMutedText()}`} />
                                 </button>
@@ -560,13 +604,13 @@ export function DashboardPage() {
                                 <button
                                   onClick={handleEditUsername}
                                   className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label="Edit username"
+                                  aria-label={t("dashboard.edit")}
                                 >
                                   <Pencil className={`w-4 h-4 ${getMutedText()}`} />
                                 </button>
                               </div>
                             )}
-                            <p className={`text-sm ${getMutedText()} whitespace-nowrap`}>User Account</p>
+                            <p className={`text-sm ${getMutedText()} whitespace-nowrap`}>{t("dashboard.userAccount")}</p>
                           </div>
                         </div>
                         <button
@@ -577,7 +621,7 @@ export function DashboardPage() {
                             }`}
                         >
                           <Trash2 className="w-4 h-4" />
-                          <span>Delete Account</span>
+                          <span>{t("dashboard.deleteAccount")}</span>
                         </button>
                       </div>
                     </section>
@@ -587,10 +631,10 @@ export function DashboardPage() {
                       <div className={`rounded-2xl border-2 border-[#C678DD] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Total Projects")}
-                          onMouseMove={(e) => handleMouseMove(e, "Total Projects")}
+                          onMouseEnter={(e) => handleMouseEnter(e, t("dashboard.statistics.totalProjects"))}
+                          onMouseMove={(e) => handleMouseMove(e, t("dashboard.statistics.totalProjects"))}
                           onMouseLeave={handleMouseLeave}
-                        >Total Projects</p>
+                        >{t("dashboard.statistics.totalProjects")}</p>
                         <p
                           className="mt-4 text-4xl font-semibold text-[#C678DD] whitespace-nowrap truncate"
                           onMouseEnter={(e) => handleMouseEnter(e, totalProjects.toString())}
@@ -601,10 +645,10 @@ export function DashboardPage() {
                       <div className={`rounded-2xl border-2 border-[#E5C07B] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Outline stage")}
-                          onMouseMove={(e) => handleMouseMove(e, "Outline stage")}
+                          onMouseEnter={(e) => handleMouseEnter(e, t("dashboard.statistics.outlineStage"))}
+                          onMouseMove={(e) => handleMouseMove(e, t("dashboard.statistics.outlineStage"))}
                           onMouseLeave={handleMouseLeave}
-                        >Outline stage</p>
+                        >{t("dashboard.statistics.outlineStage")}</p>
                         <p
                           className="mt-4 text-4xl font-semibold text-[#E5C07B] whitespace-nowrap truncate"
                           onMouseEnter={(e) => handleMouseEnter(e, step2Count.toString())}
@@ -615,10 +659,10 @@ export function DashboardPage() {
                       <div className={`rounded-2xl border-2 border-[#56B6C2] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Design stage")}
-                          onMouseMove={(e) => handleMouseMove(e, "Design stage")}
+                          onMouseEnter={(e) => handleMouseEnter(e, t("dashboard.statistics.designStage"))}
+                          onMouseMove={(e) => handleMouseMove(e, t("dashboard.statistics.designStage"))}
                           onMouseLeave={handleMouseLeave}
-                        >Design stage</p>
+                        >{t("dashboard.statistics.designStage")}</p>
                         <p
                           className="mt-4 text-4xl font-semibold text-[#56B6C2] whitespace-nowrap truncate"
                           onMouseEnter={(e) => handleMouseEnter(e, step3Count.toString())}
@@ -629,10 +673,10 @@ export function DashboardPage() {
                       <div className={`rounded-2xl border-2 border-[#8DB472] ${getCardBg()} p-6 overflow-hidden`}>
                         <p
                           className={`text-sm ${getMutedText()} whitespace-nowrap truncate`}
-                          onMouseEnter={(e) => handleMouseEnter(e, "Deployed")}
-                          onMouseMove={(e) => handleMouseMove(e, "Deployed")}
+                          onMouseEnter={(e) => handleMouseEnter(e, t("dashboard.statistics.deployed"))}
+                          onMouseMove={(e) => handleMouseMove(e, t("dashboard.statistics.deployed"))}
                           onMouseLeave={handleMouseLeave}
-                        >Deployed</p>
+                        >{t("dashboard.statistics.deployed")}</p>
                         <p
                           className="mt-4 text-4xl font-semibold text-[#8DB472] whitespace-nowrap truncate"
                           onMouseEnter={(e) => handleMouseEnter(e, step4Count.toString())}
@@ -645,25 +689,25 @@ export function DashboardPage() {
                     {/* Projects List Section */}
                     <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6`}>
                       <div className="flex items-center justify-between mb-6">
-                        <h2 className={`text-lg font-medium ${getTextColor()} whitespace-nowrap`}>Current Projects</h2>
+                        <h2 className={`text-lg font-medium ${getTextColor()} whitespace-nowrap`}>{t("dashboard.projects.currentProjects")}</h2>
                         <button
                           onClick={handleCreateNewCourse}
                           className={`rounded-md bg-[#61AFEF] px-4 py-2 text-sm font-medium transition hover:bg-[#82C6FF] whitespace-nowrap ${theme === "light" ? "text-white" : "text-[#1E2025]"
                             }`}
                         >
-                          Create New Course
+                          {t("dashboard.projects.createNewCourse")}
                         </button>
                       </div>
                       <div className="space-y-6">
-                        {renderProjectSection("Outline stage", step2Projects)}
+                        {renderProjectSection(t("dashboard.statistics.outlineStage"), step2Projects)}
                         {step2Projects.length > 0 && (step3Projects.length > 0 || step4Projects.length > 0) && (
                           <div className={`border-t ${getBorderColor()}`} />
                         )}
-                        {renderProjectSection("Design stage", step3Projects)}
+                        {renderProjectSection(t("dashboard.statistics.designStage"), step3Projects)}
                         {step3Projects.length > 0 && step4Projects.length > 0 && (
                           <div className={`border-t ${getBorderColor()}`} />
                         )}
-                        {renderProjectSection("Deployed", step4Projects)}
+                        {renderProjectSection(t("dashboard.statistics.deployed"), step4Projects)}
                       </div>
                     </section>
                   </>
@@ -671,13 +715,13 @@ export function DashboardPage() {
 
                 {activeTab === "preferences" && (
                   <div>
-                    <h2 className={`text-lg font-semibold ${getTextColor()} mb-6`}>Preferences</h2>
+                    <h2 className={`text-lg font-semibold ${getTextColor()} mb-6`}>{t("preferences.title")}</h2>
                     <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6 w-full`}>
                       <div className="flex items-center gap-2 mb-2">
                         <Sun className={`w-5 h-5 ${getTextColor()}`} />
-                        <h3 className={`text-base font-semibold ${getTextColor()}`}>Theme</h3>
+                        <h3 className={`text-base font-semibold ${getTextColor()}`}>{t("preferences.theme.title")}</h3>
                       </div>
-                      <p className={`text-sm ${getMutedText()} mb-4`}>Choose your preferred color scheme</p>
+                      <p className={`text-sm ${getMutedText()} mb-4`}>{t("preferences.theme.description")}</p>
                       <div className={`relative flex p-1 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
                         {/* Sliding indicator */}
                         <div
@@ -696,7 +740,7 @@ export function DashboardPage() {
                             }`}
                         >
                           <Sun className="w-4 h-4" />
-                          <span className="text-sm font-medium">Light</span>
+                          <span className="text-sm font-medium">{t("preferences.theme.light")}</span>
                         </button>
                         <button
                           onClick={() => handleThemeChange("dark")}
@@ -706,7 +750,7 @@ export function DashboardPage() {
                             }`}
                         >
                           <Moon className="w-4 h-4" />
-                          <span className="text-sm font-medium">Dark</span>
+                          <span className="text-sm font-medium">{t("preferences.theme.dark")}</span>
                         </button>
                         <button
                           onClick={() => handleThemeChange("system")}
@@ -716,8 +760,61 @@ export function DashboardPage() {
                             }`}
                         >
                           <Monitor className="w-4 h-4" />
-                          <span className="text-sm font-medium">System</span>
+                          <span className="text-sm font-medium">{t("preferences.theme.system")}</span>
                         </button>
+                      </div>
+                    </section>
+
+                    {/* Language Settings */}
+                    <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6 w-full mt-6`}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 flex-1">
+                          <Languages className={`w-5 h-5 ${getTextColor()}`} />
+                          <div>
+                            <h3 className={`text-base font-semibold ${getTextColor()}`}>{t("preferences.language.title")}</h3>
+                            <p className={`text-sm ${getMutedText()}`}>{t("preferences.language.description")}</p>
+                          </div>
+                        </div>
+                        <div className="relative" ref={languageDropdownRef}>
+                          <button
+                            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                            className={`flex items-center justify-between gap-2 px-3 py-2 rounded-md ${getCardSurface()} border ${getBorderColor()} ${getTextColor()} text-sm font-medium transition-colors ${getHoverBg()} min-w-[140px]`}
+                          >
+                            <span>{currentLanguage === "en" ? t("preferences.language.english") : t("preferences.language.traditionalChinese")}</span>
+                            <svg
+                              className={`w-4 h-4 transition-transform ${showLanguageDropdown ? "rotate-180" : ""}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {showLanguageDropdown && (
+                            <div className={`absolute top-full right-0 mt-2 rounded-md ${getCardBg()} border ${getBorderColor()} shadow-lg z-50 overflow-hidden min-w-[140px]`}>
+                              <button
+                                onClick={() => handleLanguageChange("en")}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                                  currentLanguage === "en"
+                                    ? `${getCardSurface()} ${getTextColor()} font-medium`
+                                    : `${getTextColor()} ${getHoverBg()}`
+                                }`}
+                              >
+                                {t("preferences.language.english")}
+                              </button>
+                              <button
+                                onClick={() => handleLanguageChange("zh-TW")}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors border-t ${getBorderColor()} ${
+                                  currentLanguage === "zh-TW"
+                                    ? `${getCardSurface()} ${getTextColor()} font-medium`
+                                    : `${getTextColor()} ${getHoverBg()}`
+                                }`}
+                              >
+                                {t("preferences.language.traditionalChinese")}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </section>
                   </div>
@@ -725,9 +822,9 @@ export function DashboardPage() {
 
                 {activeTab === "help-center" && (
                   <div>
-                    <h2 className={`text-lg font-semibold ${getTextColor()} mb-6`}>Help Center</h2>
+                    <h2 className={`text-lg font-semibold ${getTextColor()} mb-6`}>{t("helpCenter.title")}</h2>
                     <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6 w-full`}>
-                      <p className={`text-sm ${getMutedText()}`}>Help content will be displayed here.</p>
+                      <p className={`text-sm ${getMutedText()}`}>{t("helpCenter.content")}</p>
                     </section>
                   </div>
                 )}
@@ -762,19 +859,27 @@ export function DashboardPage() {
             className={`${getCardSurface()} border ${getBorderColor()} rounded-lg shadow-lg p-6 max-w-md w-full mx-4`}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className={`text-xl font-semibold ${getTextColor()} mb-4`}>Delete Account</h2>
+            <h2 className={`text-xl font-semibold ${getTextColor()} mb-4`}>{t("dashboard.deleteModal.title")}</h2>
             <div className={`text-sm ${getMutedText()} mb-6 space-y-2`}>
-              <p>Are you sure you want to permanently delete your account?</p>
+              <p>{t("dashboard.deleteModal.confirmMessage")}</p>
               <p>
-                This action <span className={`font-bold ${getTextColor()}`}>CANNOT be undone</span> and all your data will be permanently deleted.
+                {currentLanguage === "en" ? (
+                  <>
+                    {t("dashboard.deleteModal.warningMessage").split("CANNOT be undone")[0]}
+                    <span className={`font-bold ${getTextColor()}`}>CANNOT be undone</span>
+                    {t("dashboard.deleteModal.warningMessage").split("CANNOT be undone")[1]}
+                  </>
+                ) : (
+                  t("dashboard.deleteModal.warningMessage")
+                )}
               </p>
-              <p className="mt-4">Type DELETE to confirm.</p>
+              <p className="mt-4">{t("dashboard.deleteModal.confirmInstruction")}</p>
             </div>
             <input
               type="text"
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder="Type DELETE"
+              placeholder={t("dashboard.deleteModal.placeholder")}
               className={`w-full px-4 py-2 rounded-md ${getCardBg()} border ${getBorderColor()} ${getTextColor()} mb-6 focus:outline-none focus:border-[#61AFEF]`}
             />
             <div className="flex gap-3 justify-end">
@@ -782,7 +887,7 @@ export function DashboardPage() {
                 onClick={handleDeleteCancel}
                 className={`px-4 py-2 rounded-md border ${getBorderColor()} ${getCardBg()} ${getTextColor()} text-sm font-medium transition ${getHoverBg()} cursor-pointer`}
               >
-                Cancel
+                {t("dashboard.deleteModal.cancel")}
               </button>
               <button
                 onClick={handleDeleteConfirm}
@@ -792,7 +897,7 @@ export function DashboardPage() {
                   : "bg-red-900/50 text-red-400 hover:bg-red-900/70 border-red-800/50"
                   }`}
               >
-                Delete Account
+                {t("dashboard.deleteModal.delete")}
               </button>
             </div>
           </div>

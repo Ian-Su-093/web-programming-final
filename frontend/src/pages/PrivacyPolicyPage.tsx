@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import i18n from "@/i18n/config"
 
 export function PrivacyPolicyPage() {
   const navigate = useNavigate()
-  
+  const { t } = useTranslation()
+
+  // Get current language from i18n
+  const currentLanguage = i18n.language || localStorage.getItem("language") || "en"
+
   // Theme state - default to system to respect system preferences
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -21,7 +27,7 @@ export function PrivacyPolicyPage() {
   useEffect(() => {
     // Remove all theme classes first
     document.documentElement.classList.remove("dark", "theme-light")
-    
+
     if (theme === "system") {
       const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
       setIsDark(systemPrefersDark)
@@ -92,10 +98,11 @@ export function PrivacyPolicyPage() {
   }
 
   const getCurrentDate = () => {
-    return new Date().toLocaleDateString("en-US", { 
-      year: "numeric", 
-      month: "long", 
-      day: "numeric" 
+    const locale = currentLanguage === "zh-TW" ? "zh-TW" : "en-US"
+    return new Date().toLocaleDateString(locale, {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
     })
   }
 
@@ -119,144 +126,171 @@ export function PrivacyPolicyPage() {
             <path d="m12 19-7-7 7-7" />
             <path d="M19 12H5" />
           </svg>
-          Back
+          {t("privacyPolicy.back")}
         </button>
 
         <div className={`rounded-lg border ${getCardBorder()} ${getCardBg()} shadow-lg p-8 md:p-12 transition-colors`}>
           <div className="mb-8">
             <h1 className={`text-4xl font-bold mb-2 ${getTitleColor()} transition-colors`}>
-              Privacy Policy for Course Craft
+              {t("privacyPolicy.title")}
             </h1>
             <p className={`text-sm ${getTextColor()} transition-colors`}>
-              Effective Date: {getCurrentDate()}
+              {t("privacyPolicy.effectiveDate")}: {getCurrentDate()}
             </p>
           </div>
 
           <div className={`prose prose-lg max-w-none ${isDark ? "prose-invert" : ""} ${getTextColor()}`}>
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                Introduction
+                {t("privacyPolicy.sections.introduction.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                Course Craft ("we," "us," or "our") values your privacy and is committed to protecting your personal information. This Privacy Policy explains how we collect, use, and share your data when you use our website and services.
+                {t("privacyPolicy.sections.introduction.content")}
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                1. Information We Collect
+                {t("privacyPolicy.sections.informationWeCollect.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                We collect the following types of information when you use Course Craft:
+                {t("privacyPolicy.sections.informationWeCollect.intro")}
               </p>
               <ul className={`list-disc list-inside mb-4 space-y-2 ${getTextColor()} transition-colors leading-relaxed ml-4`}>
-                <li><strong>Account Information:</strong> When you register for an account, we collect your name, email address, and other details necessary for account management.</li>
-                <li><strong>Uploaded Content:</strong> We collect any files or content you upload, including PDFs and any chat history generated during your interactions with the Gemini AI agent.</li>
-                <li><strong>Usage Data:</strong> We collect information about how you interact with Course Craft, such as pages visited, features used, and timestamps.</li>
+                {(() => {
+                  const accountInfo = t("privacyPolicy.sections.informationWeCollect.items.accountInfo")
+                  const accountParts = accountInfo.split(/[:：]/)
+                  const uploadedContent = t("privacyPolicy.sections.informationWeCollect.items.uploadedContent")
+                  const uploadedParts = uploadedContent.split(/[:：]/)
+                  const usageData = t("privacyPolicy.sections.informationWeCollect.items.usageData")
+                  const usageParts = usageData.split(/[:：]/)
+                  return (
+                    <>
+                      <li><strong>{accountParts[0]}{currentLanguage === "zh-TW" ? "：" : ":"}</strong> {accountParts.slice(1).join(currentLanguage === "zh-TW" ? "：" : ":").trim()}</li>
+                      <li><strong>{uploadedParts[0]}{currentLanguage === "zh-TW" ? "：" : ":"}</strong> {uploadedParts.slice(1).join(currentLanguage === "zh-TW" ? "：" : ":").trim()}</li>
+                      <li><strong>{usageParts[0]}{currentLanguage === "zh-TW" ? "：" : ":"}</strong> {usageParts.slice(1).join(currentLanguage === "zh-TW" ? "：" : ":").trim()}</li>
+                    </>
+                  )
+                })()}
               </ul>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                2. How We Use Your Information
+                {t("privacyPolicy.sections.howWeUse.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                We use the collected information to:
+                {t("privacyPolicy.sections.howWeUse.intro")}
               </p>
               <ul className={`list-disc list-inside mb-4 space-y-2 ${getTextColor()} transition-colors leading-relaxed ml-4`}>
-                <li>Provide and improve the Services.</li>
-                <li>Communicate with you about your account or any updates to our services.</li>
-                <li>Personalize your experience with Course Craft.</li>
-                <li>Process payments and manage billing (if applicable).</li>
-                <li>Comply with legal obligations and resolve disputes.</li>
+                {(t("privacyPolicy.sections.howWeUse.items", { returnObjects: true }) as string[]).map((item: string, index: number) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                3. Data Storage and Security
+                {t("privacyPolicy.sections.dataStorage.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                Your information is stored on secure servers. We implement industry-standard security measures to protect your data, but please note that no data transmission over the internet can be guaranteed to be 100% secure.
+                {t("privacyPolicy.sections.dataStorage.content")}
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                4. Sharing Your Information
+                {t("privacyPolicy.sections.sharing.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                We do not share your personal information with third parties except in the following cases:
+                {t("privacyPolicy.sections.sharing.intro")}
               </p>
               <ul className={`list-disc list-inside mb-4 space-y-2 ${getTextColor()} transition-colors leading-relaxed ml-4`}>
-                <li><strong>Service Providers:</strong> We may share your data with trusted third-party service providers who assist us in operating the Services, such as hosting providers and payment processors.</li>
-                <li><strong>Legal Requirements:</strong> We may disclose your information if required by law or in response to legal processes such as subpoenas or court orders.</li>
+                {(() => {
+                  const serviceProviders = t("privacyPolicy.sections.sharing.items.serviceProviders")
+                  const serviceParts = serviceProviders.split(/[:：]/)
+                  const legalRequirements = t("privacyPolicy.sections.sharing.items.legalRequirements")
+                  const legalParts = legalRequirements.split(/[:：]/)
+                  return (
+                    <>
+                      <li><strong>{serviceParts[0]}{currentLanguage === "zh-TW" ? "：" : ":"}</strong> {serviceParts.slice(1).join(currentLanguage === "zh-TW" ? "：" : ":").trim()}</li>
+                      <li><strong>{legalParts[0]}{currentLanguage === "zh-TW" ? "：" : ":"}</strong> {legalParts.slice(1).join(currentLanguage === "zh-TW" ? "：" : ":").trim()}</li>
+                    </>
+                  )
+                })()}
               </ul>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                5. Cookies and Tracking Technologies
+                {t("privacyPolicy.sections.cookies.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                We use cookies and similar tracking technologies to enhance your experience on Course Craft. Cookies help us remember your preferences, analyze usage patterns, and improve our Services. You can control cookie settings through your browser settings.
+                {t("privacyPolicy.sections.cookies.content")}
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                6. Data Retention
+                {t("privacyPolicy.sections.dataRetention.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                We retain your information for as long as necessary to provide the Services and comply with legal obligations. If you wish to delete your account or any personal information, please contact us at <a href="mailto:example@email.com" className="text-blue-500 hover:underline">example@email.com</a>.
+                {t("privacyPolicy.sections.dataRetention.content", { email: "" }).split("{email}")[0]}
+                <a href={`mailto:${t("privacyPolicy.sections.dataRetention.email")}`} className="text-blue-500 hover:underline">
+                  {t("privacyPolicy.sections.dataRetention.email")}
+                </a>
+                {t("privacyPolicy.sections.dataRetention.content", { email: "" }).split("{email}")[1]}
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                7. Your Rights
+                {t("privacyPolicy.sections.yourRights.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                Depending on your jurisdiction, you may have the right to access, update, or delete your personal data. You may also have the right to object to certain processing activities or withdraw consent where applicable.
+                {t("privacyPolicy.sections.yourRights.content")}
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                8. International Transfers
+                {t("privacyPolicy.sections.internationalTransfers.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                Your information may be transferred to and stored on servers located outside your country of residence. By using the Services, you consent to this transfer.
+                {t("privacyPolicy.sections.internationalTransfers.content")}
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                9. Children's Privacy
+                {t("privacyPolicy.sections.childrenPrivacy.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                Course Craft is not intended for use by children under the age of 13. We do not knowingly collect or solicit personal information from anyone under 13 years of age. If we learn that we have inadvertently collected such information, we will take steps to delete it.
+                {t("privacyPolicy.sections.childrenPrivacy.content")}
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                10. Changes to This Privacy Policy
+                {t("privacyPolicy.sections.changes.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                We may update this Privacy Policy from time to time. When we make significant changes, we will post the updated policy on this page and update the effective date. Please review this policy periodically for any updates.
+                {t("privacyPolicy.sections.changes.content")}
               </p>
             </section>
 
             <section className="mb-8 pt-8 border-t border-gray-300 dark:border-[#3E4451]">
               <h2 className={`text-2xl font-semibold mb-4 ${getHeadingColor()} transition-colors`}>
-                11. Contact Us
+                {t("privacyPolicy.sections.contact.title")}
               </h2>
               <p className={`mb-4 ${getTextColor()} transition-colors leading-relaxed`}>
-                If you have any questions about this Privacy Policy or your data, please contact us at:
+                {t("privacyPolicy.sections.contact.intro")}
               </p>
               <p className={`${getTextColor()} transition-colors leading-relaxed`}>
-                Email: <a href="mailto:example@email.com" className="text-blue-500 hover:underline">example@email.com</a>
+                {t("privacyPolicy.sections.contact.email", { email: "" }).split("{email}")[0]}
+                <a href={`mailto:${t("privacyPolicy.sections.contact.emailValue")}`} className="text-blue-500 hover:underline">
+                  {t("privacyPolicy.sections.contact.emailValue")}
+                </a>
               </p>
             </section>
           </div>
@@ -265,4 +299,3 @@ export function PrivacyPolicyPage() {
     </div>
   )
 }
-

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { ChevronFirst, ChevronLast, Monitor, ExternalLink } from "lucide-react"
 
 interface WebPreviewProps {
@@ -11,6 +12,7 @@ interface WebPreviewProps {
 }
 
 export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidden, isSwapped = false, id }: WebPreviewProps) {
+  const { t } = useTranslation()
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -84,7 +86,7 @@ export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidd
                 <button
                   onClick={onToggleChat}
                   className={`${getHoverBg()} rounded p-1 transition-colors`}
-                  aria-label="Toggle chat section"
+                  aria-label={t("outline.webDesign.preview.toggleChat")}
                 >
                   {isChatHidden ? (
                     <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
@@ -94,15 +96,15 @@ export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidd
                 </button>
               )}
               <h2 className={`text-sm font-semibold ${getMutedText()} uppercase tracking-[0.4rem]`}>
-                Web Preview
+                {t("outline.webDesign.preview.title")}
               </h2>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleOpenInNewTab}
                 className={`${getHoverBg()} rounded p-1 transition-colors`}
-                aria-label="Open in new tab"
-                title="Open in new tab"
+                aria-label={t("outline.webDesign.preview.openInNewTab")}
+                title={t("outline.webDesign.preview.openInNewTab")}
               >
                 <ExternalLink className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
               </button>
@@ -110,7 +112,7 @@ export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidd
                 <button
                   onClick={onToggleChat}
                   className={`${getHoverBg()} rounded p-1 transition-colors`}
-                  aria-label="Toggle chat section"
+                  aria-label={t("outline.webDesign.preview.toggleChat")}
                 >
                   {isChatHidden ? (
                     <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
@@ -134,10 +136,10 @@ export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidd
             <div className="text-center">
               <Monitor className="w-16 h-16 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600 text-lg">
-                Web preview will appear here
+                {t("outline.webDesign.preview.emptyState")}
               </p>
               <p className="text-gray-500 text-sm mt-2">
-                As you modify the layout, the preview will update in real-time
+                {t("outline.webDesign.preview.description")}
               </p>
             </div>
           </div>

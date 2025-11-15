@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import type { MouseEvent as ReactMouseEvent } from "react"
 import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
@@ -78,6 +79,7 @@ const mockCourseData: CourseData = {
 }
 
 export function OutlinePage() {
+  const { t } = useTranslation()
   const [messages, setMessages] = useState<Message[]>(mockMessages)
   const [courseData, setCourseData] = useState<CourseData>(mockCourseData)
   const [isLoading, setIsLoading] = useState(false)
@@ -191,8 +193,7 @@ export function OutlinePage() {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content:
-          "I understand you'd like to plan a course. This is a demo response. In a real implementation, this would connect to an AI service to generate course outlines based on your input.",
+        content: t("outline.assistant.demoResponse"),
         timestamp: new Date(),
       }
 
@@ -294,9 +295,9 @@ export function OutlinePage() {
         isOpen={showConfirmModal}
         onClose={handleCancel}
         onConfirm={handleConfirm}
-        message="By doing so, you will have to re-design the course outline again."
-        confirmText="Continue"
-        cancelText="Cancel"
+        message={t("outline.modal.message")}
+        confirmText={t("outline.modal.continue")}
+        cancelText={t("outline.modal.cancel")}
       />
 
       {!isChatHidden && (

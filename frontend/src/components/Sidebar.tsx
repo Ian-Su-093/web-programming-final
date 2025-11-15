@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, forwardRef } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Menu, X, User, CheckCircle2, Circle, LogOut, LayoutDashboard } from "lucide-react"
 
 type SidebarProps = {
@@ -12,6 +13,7 @@ type SidebarProps = {
 type StepState = "completed" | "current" | "upcoming"
 
 export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep = 2, onStepSelect, isCollapsed: externalIsCollapsed, onCollapseChange }, ref) => {
+  const { t } = useTranslation()
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(true)
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -221,7 +223,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
         <button
           onClick={toggleSidebar}
           className={`absolute top-4 left-3 w-10 h-10 flex items-center justify-center p-2 rounded-md ${getHoverBg()} transition-colors flex-shrink-0 cursor-pointer`}
-          aria-label="Toggle sidebar"
+          aria-label={t("sidebar.toggleSidebar")}
         >
           {isCollapsed ? (
             <Menu className={`w-5 h-5 ${getTextColor()}`} />
@@ -238,10 +240,10 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
           <button
             onClick={() => handleStepClick(1)}
             className={`w-full flex items-center gap-3 ${getHoverBg()} rounded-md p-2 transition-colors cursor-pointer`}
-            aria-label="Upload files"
+            aria-label={t("sidebar.steps.uploadFiles")}
           >
             {getIcon(step1State)}
-            <span className={getStepTextClasses(step1State)}>Upload files</span>
+            <span className={getStepTextClasses(step1State)}>{t("sidebar.steps.uploadFiles")}</span>
           </button>
 
           {/* Connector Line */}
@@ -255,10 +257,10 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
               ? "cursor-not-allowed opacity-50"
               : `${getHoverBg()} cursor-pointer`
               }`}
-            aria-label="Modify course outline"
+            aria-label={t("sidebar.steps.modifyCourseOutline")}
           >
             {getIcon(step2State)}
-            <span className={getStepTextClasses(step2State)}>Modify course outline</span>
+            <span className={getStepTextClasses(step2State)}>{t("sidebar.steps.modifyCourseOutline")}</span>
           </button>
 
           {/* Connector Line */}
@@ -272,9 +274,10 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
               ? "cursor-not-allowed opacity-50"
               : `${getHoverBg()} cursor-pointer`
               }`}
+            aria-label={t("sidebar.steps.modifyWebsiteLayout")}
           >
             {getIcon(step3State)}
-            <span className={getStepTextClasses(step3State)}>Modify website layout</span>
+            <span className={getStepTextClasses(step3State)}>{t("sidebar.steps.modifyWebsiteLayout")}</span>
           </button>
         </div>
       )}
@@ -285,7 +288,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
           <button
             onClick={() => handleStepClick(1)}
             className={`${getHoverBg()} rounded-md p-1 transition-colors cursor-pointer`}
-            aria-label="Upload files"
+            aria-label={t("sidebar.steps.uploadFiles")}
           >
             {getCollapsedIcon(step1State)}
           </button>
@@ -297,7 +300,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
               ? "cursor-not-allowed opacity-50"
               : `${getHoverBg()} cursor-pointer`
               }`}
-            aria-label="Modify course outline"
+            aria-label={t("sidebar.steps.modifyCourseOutline")}
           >
             {getCollapsedIcon(step2State)}
           </button>
@@ -309,7 +312,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
               ? "cursor-not-allowed opacity-50"
               : `${getHoverBg()} cursor-pointer`
               }`}
-            aria-label="Modify website layout"
+            aria-label={t("sidebar.steps.modifyWebsiteLayout")}
           >
             {getCollapsedIcon(step3State)}
           </button>
@@ -322,7 +325,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
           <button
             onClick={handleUserClick}
             className={`w-10 h-10 rounded-full ${getCardBg()} flex items-center justify-center border ${getBorderColor()} ${theme === "light" ? "hover:bg-gray-200" : "hover:bg-[#3E4451]"} transition-colors flex-shrink-0 cursor-pointer`}
-            aria-label="User menu"
+            aria-label={t("sidebar.userMenu")}
           >
             <User className={`w-5 h-5 ${getTextColor()}`} />
           </button>
@@ -330,12 +333,12 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
           <button
             onClick={handleUserClick}
             className={`w-full flex items-center gap-3 ${getHoverBg()} rounded-md p-2 transition-colors cursor-pointer`}
-            aria-label="User menu"
+            aria-label={t("sidebar.userMenu")}
           >
             <div className={`w-10 h-10 rounded-full ${getCardBg()} flex items-center justify-center border ${getBorderColor()} flex-shrink-0`}>
               <User className={`w-5 h-5 ${getTextColor()}`} />
             </div>
-            <span className={`text-sm ${getTextColor()} font-medium`}>Guest</span>
+            <span className={`text-sm ${getTextColor()} font-medium`}>{t("sidebar.guest")}</span>
           </button>
         )}
 
@@ -349,7 +352,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
                 className={`w-full flex items-center gap-3 px-4 py-2 ${theme === "light" ? "hover:bg-gray-100" : "hover:bg-[#3E4451]"} transition-colors text-sm ${getTextColor()} cursor-pointer ${isCollapsed ? "justify-center" : ""}`}
               >
                 <LayoutDashboard className={`w-4 h-4 ${getTextColor()}`} />
-                {!isCollapsed && <span>Dashboard</span>}
+                {!isCollapsed && <span>{t("sidebar.dashboard")}</span>}
               </button>
 
               {/* Divider */}
@@ -361,7 +364,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
                 className={`w-full flex items-center gap-3 px-4 py-2 ${theme === "light" ? "hover:bg-gray-100" : "hover:bg-[#3E4451]"} transition-colors text-sm text-red-600 dark:text-red-400 cursor-pointer ${isCollapsed ? "justify-center" : ""}`}
               >
                 <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
-                {!isCollapsed && <span>Logout</span>}
+                {!isCollapsed && <span>{t("sidebar.logout")}</span>}
               </button>
             </div>
           </div>

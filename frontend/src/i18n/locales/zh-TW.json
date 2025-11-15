@@ -1,0 +1,280 @@
+{
+  "privacyPolicy": {
+    "title": "Course Craft 隱私政策",
+    "effectiveDate": "生效日期",
+    "back": "返回",
+    "sections": {
+      "introduction": {
+        "title": "簡介",
+        "content": "Course Craft（「我們」或「我們的」）重視您的隱私，並致力於保護您的個人資訊。本隱私政策說明當您使用我們的網站和服務時，我們如何收集、使用和分享您的資料。"
+      },
+      "informationWeCollect": {
+        "title": "1. 我們收集的資訊",
+        "intro": "當您使用 Course Craft 時，我們會收集以下類型的資訊：",
+        "items": {
+          "accountInfo": "帳戶資訊：當您註冊帳戶時，我們會收集您的姓名、電子郵件地址以及帳戶管理所需的其他詳細資訊。",
+          "uploadedContent": "上傳的內容：我們會收集您上傳的任何檔案或內容，包括 PDF 以及您與 Gemini AI 代理互動期間產生的任何聊天記錄。",
+          "usageData": "使用資料：我們會收集有關您如何與 Course Craft 互動的資訊，例如訪問的頁面、使用的功能以及時間戳記。"
+        }
+      },
+      "howWeUse": {
+        "title": "2. 我們如何使用您的資訊",
+        "intro": "我們使用收集的資訊來：",
+        "items": [
+          "提供和改進服務。",
+          "就您的帳戶或我們服務的任何更新與您溝通。",
+          "個人化您在 Course Craft 上的體驗。",
+          "處理付款和管理帳單（如適用）。",
+          "遵守法律義務並解決爭議。"
+        ]
+      },
+      "dataStorage": {
+        "title": "3. 資料儲存和安全",
+        "content": "您的資訊儲存在安全的伺服器上。我們實施業界標準的安全措施來保護您的資料，但請注意，透過網際網路傳輸的資料無法保證 100% 安全。"
+      },
+      "sharing": {
+        "title": "4. 分享您的資訊",
+        "intro": "除以下情況外，我們不會與第三方分享您的個人資訊：",
+        "items": {
+          "serviceProviders": "服務提供商：我們可能會與協助我們運營服務的可信第三方服務提供商分享您的資料，例如託管提供商和付款處理商。",
+          "legalRequirements": "法律要求：如果法律要求或回應法律程序（如傳票或法院命令），我們可能會披露您的資訊。"
+        }
+      },
+      "cookies": {
+        "title": "5. Cookie 和追蹤技術",
+        "content": "我們使用 Cookie 和類似的追蹤技術來增強您在 Course Craft 上的體驗。Cookie 幫助我們記住您的偏好、分析使用模式並改進我們的服務。您可以透過瀏覽器設定控制 Cookie 設定。"
+      },
+      "dataRetention": {
+        "title": "6. 資料保留",
+        "content": "我們會保留您的資訊，直到提供服務和遵守法律義務所需為止。如果您希望刪除您的帳戶或任何個人資訊，請透過 {email} 與我們聯繫。",
+        "email": "example@email.com"
+      },
+      "yourRights": {
+        "title": "7. 您的權利",
+        "content": "根據您所在的司法管轄區，您可能有權訪問、更新或刪除您的個人資料。您也可能有權反對某些處理活動或在適用的情況下撤回同意。"
+      },
+      "internationalTransfers": {
+        "title": "8. 國際傳輸",
+        "content": "您的資訊可能會被傳輸並儲存在您居住國以外的伺服器上。使用服務即表示您同意此傳輸。"
+      },
+      "childrenPrivacy": {
+        "title": "9. 兒童隱私",
+        "content": "Course Craft 不適用於 13 歲以下的兒童。我們不會故意收集或徵求 13 歲以下任何人的個人資訊。如果我們得知我們無意中收集了此類資訊，我們將採取措施刪除它。"
+      },
+      "changes": {
+        "title": "10. 本隱私政策的變更",
+        "content": "我們可能會不時更新本隱私政策。當我們進行重大變更時，我們會在此頁面上發布更新後的政策並更新生效日期。請定期查看此政策以了解任何更新。"
+      },
+      "contact": {
+        "title": "11. 聯絡我們",
+        "intro": "如果您對本隱私政策或您的資料有任何疑問，請透過以下方式與我們聯繫：",
+        "email": "電子郵件：{email}",
+        "emailValue": "example@email.com"
+      }
+    }
+  },
+  "dashboard": {
+    "title": "儀表板",
+    "preferences": "偏好設定",
+    "helpCenter": "幫助中心",
+    "userAccount": "使用者帳戶",
+    "deleteAccount": "刪除帳戶",
+    "logout": "登出",
+    "save": "儲存",
+    "cancel": "取消",
+    "edit": "編輯",
+    "statistics": {
+      "totalProjects": "總專案數",
+      "outlineStage": "大綱階段",
+      "designStage": "設計階段",
+      "deployed": "已部署"
+    },
+    "projects": {
+      "currentProjects": "目前專案",
+      "createNewCourse": "建立新課程"
+    },
+    "deleteModal": {
+      "title": "刪除帳戶",
+      "confirmMessage": "您確定要永久刪除您的帳戶嗎？",
+      "warningMessage": "此操作無法復原，您的所有資料將被永久刪除。",
+      "confirmInstruction": "輸入 DELETE 以確認。",
+      "placeholder": "輸入 DELETE",
+      "cancel": "取消",
+      "delete": "刪除帳戶"
+    }
+  },
+  "preferences": {
+    "title": "偏好設定",
+    "theme": {
+      "title": "主題",
+      "description": "選擇您偏好的配色方案",
+      "light": "淺色",
+      "dark": "深色",
+      "system": "系統"
+    },
+    "language": {
+      "title": "語言",
+      "description": "選擇您偏好的語言",
+      "english": "English",
+      "traditionalChinese": "繁體中文"
+    }
+  },
+  "helpCenter": {
+    "title": "幫助中心",
+    "content": "幫助內容將顯示在此處。"
+  },
+  "upload": {
+    "title": "上傳您的課程材料",
+    "description": "上傳最多 {maxFiles} 個 PDF 檔案以開始生成大綱。您的文件將保持私密，僅用於此工作階段。",
+    "dragDrop": "將您的 PDF 檔案拖放到此處",
+    "onlyPdfSupported": "目前僅支援 PDF 檔案",
+    "filesSelected": "（已選擇 {count}/{maxFiles} 個檔案）",
+    "browseFiles": "瀏覽檔案",
+    "remove": "移除",
+    "errors": {
+      "onlyPdf": "請僅上傳 PDF 檔案。",
+      "uploadPdf": "請上傳 PDF 檔案。",
+      "maxFilesExceeded": "您最多只能上傳 {maxFiles} 個檔案。只會新增前 {allowedCount} 個檔案。",
+      "maxFilesReached": "您最多只能上傳 {maxFiles} 個檔案。請先移除一些檔案。"
+    }
+  },
+  "sidebar": {
+    "toggleSidebar": "切換側邊欄",
+    "userMenu": "使用者選單",
+    "steps": {
+      "uploadFiles": "上傳檔案",
+      "modifyCourseOutline": "修改課程大綱",
+      "modifyWebsiteLayout": "修改網站佈局"
+    },
+    "guest": "訪客",
+    "dashboard": "儀表板",
+    "logout": "登出"
+  },
+  "outline": {
+    "modal": {
+      "message": "這樣做將需要重新設計課程大綱。",
+      "continue": "繼續",
+      "cancel": "取消"
+    },
+    "assistant": {
+      "demoResponse": "我了解您想要規劃一門課程。這是一個示範回應。在實際實作中，這將連接到 AI 服務，根據您的輸入生成課程大綱。"
+    },
+    "chat": {
+      "defaultTitle": "透過聊天建立課程大綱",
+      "placeholder": "要求新模組、改變語氣或請求更多細節...",
+      "emptyState": "開始對話以規劃您的課程",
+      "saveTitle": "儲存標題",
+      "cancelEdit": "取消編輯",
+      "editTitle": "編輯課程標題",
+      "showPreview": "顯示預覽",
+      "swapPanels": "交換面板",
+      "send": "傳送",
+      "uploadPdf": "上傳 PDF 檔案",
+      "you": "您",
+      "assistant": "助理"
+    },
+    "courseOutline": {
+      "title": "課程大綱",
+      "toggleChat": "切換聊天區塊",
+      "emptyState": "當您開始聊天時，課程大綱將顯示在此處",
+      "module": "模組",
+      "week": "週",
+      "expandModule": "展開模組",
+      "collapseModule": "收合模組"
+    },
+    "webDesign": {
+      "modal": {
+        "uploadToOutline": "這樣做將需要重新設計課程大綱和網站佈局。",
+        "outlineToLayout": "這樣做將需要重新設計網站佈局大綱。",
+        "continue": "繼續",
+        "cancel": "取消"
+      },
+      "preview": {
+        "title": "網站預覽",
+        "toggleChat": "切換聊天區塊",
+        "openInNewTab": "在新分頁中開啟",
+        "emptyState": "網站預覽將顯示在此處",
+        "description": "當您修改佈局時，預覽將即時更新"
+      }
+    }
+  },
+  "login": {
+    "title": "歡迎回來",
+    "subtitle": "登入以繼續使用您的帳戶",
+    "continueWithGoogle": "使用 Google 繼續",
+    "continueWithGitHub": "使用 GitHub 繼續",
+    "agreement": "繼續即表示您同意我們的",
+    "termsOfService": "服務條款",
+    "and": "和",
+    "privacyPolicy": "隱私政策"
+  },
+  "termsOfService": {
+    "title": "Course Craft 服務條款",
+    "effectiveDate": "生效日期",
+    "back": "返回",
+    "sections": {
+      "introduction": {
+        "welcome": "歡迎使用 Course Craft！",
+        "content": "本服務條款（「條款」）規範您對 Course Craft 網站和服務（統稱為「服務」）的使用，這些服務由 [公司名稱]（「我們」或「我們的」）提供。透過存取或使用我們的服務，您同意受這些條款約束。"
+      },
+      "acceptance": {
+        "title": "1. 接受條款",
+        "content": "透過存取或使用 Course Craft，您同意遵守並受這些條款以及我們透過引用併入的隱私政策約束。如果您不同意這些條款，您不應使用我們的服務。"
+      },
+      "servicesDescription": {
+        "title": "2. 服務說明",
+        "content": "Course Craft 允許用戶創建由人工智慧（AI）驅動的課程網站。用戶可以上傳 PDF 文件，AI 代理（Gemini）使用這些文件生成課程大綱。用戶可以透過聊天與代理互動，以完善大綱並根據大綱建立網站。聊天記錄儲存在我們的資料庫中。"
+      },
+      "accountRegistration": {
+        "title": "3. 帳戶註冊",
+        "content": "要使用 Course Craft 的服務，您必須創建一個帳戶。您同意在註冊過程中提供準確、最新和完整的資訊，並保持您的帳戶資訊最新。"
+      },
+      "userResponsibilities": {
+        "title": "4. 用戶責任",
+        "items": [
+          "您對上傳到平台的所有內容負責，包括 PDF 文件和聊天記錄。",
+          "您同意不上傳任何非法、有害、誹謗或侵犯他人權利的內容。",
+          "您同意不濫用服務，包括但不限於試圖未經授權存取任何系統、網路或用戶帳戶。"
+        ]
+      },
+      "privacy": {
+        "title": "5. 隱私和資料收集",
+        "content": "您對 Course Craft 的使用受我們的{privacyPolicy}規範。請查看它以了解我們如何收集、使用和保護您的資料。",
+        "privacyPolicy": "隱私政策"
+      },
+      "paymentTerms": {
+        "title": "6. 付款條款",
+        "content": "如果 Course Craft 提供付費服務，您同意提供準確的付款資訊並授權我們向您選擇的付款方式收費。除非另有說明，否則付款不可退款。"
+      },
+      "ownership": {
+        "title": "7. 所有權和智慧財產權",
+        "items": [
+          "您保留對上傳到平台的任何內容的所有權。",
+          "我們保留用於提供 Course Craft 的技術和 AI 工具的所有權利、所有權和利益，包括但不限於任何軟體、演算法和資料庫。"
+        ]
+      },
+      "limitationOfLiability": {
+        "title": "8. 責任限制",
+        "content": "我們不對因您使用服務或服務提供的任何內容而導致的任何直接、間接、偶然、特殊或後續損害負責。我們的責任限於引起索賠的交易中為特定服務支付的金額。"
+      },
+      "indemnification": {
+        "title": "9. 賠償",
+        "content": "您同意賠償並使 Course Craft、其關聯公司和員工免受因您使用服務或違反這些條款而產生的任何索賠、損失、損害、責任或費用（包括律師費）。"
+      },
+      "termination": {
+        "title": "10. 終止",
+        "content": "我們保留自行決定暫停或終止您對服務的存取權限，包括但不限於任何違反這些條款的行為。"
+      },
+      "changesToTerms": {
+        "title": "11. 條款變更",
+        "content": "我們保留隨時修改或更新這些條款的權利。任何變更將發佈在此頁面上，生效日期將相應更新。您在變更後繼續使用服務即表示您接受修訂後的條款。"
+      },
+      "contact": {
+        "title": "聯絡資訊",
+        "content": "如果您對這些條款有任何疑問，請透過以下方式聯絡我們：",
+        "email": "example@email.com"
+      }
+    }
+  }
+}
+

@@ -1,12 +1,14 @@
 import { useRef, useState, useEffect } from "react"
 import type { ChangeEvent, DragEvent } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import "@/App.css"
 import { Sidebar } from "@/components/Sidebar"
 
 const MAX_FILES = 10
 
 export function UploadPage() {
+  const { t } = useTranslation()
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -108,7 +110,7 @@ export function UploadPage() {
         file.name.toLowerCase().endsWith(".pdf")
 
       if (!isPdf) {
-        validationError = "Please upload only PDF files."
+        validationError = t("upload.errors.onlyPdf")
         continue
       }
 
@@ -116,7 +118,7 @@ export function UploadPage() {
     }
 
     if (validFiles.length === 0 && files.length > 0) {
-      setError(validationError || "Please upload PDF files.")
+      setError(validationError || t("upload.errors.uploadPdf"))
       return []
     }
 
@@ -125,10 +127,10 @@ export function UploadPage() {
     if (newCount > MAX_FILES) {
       const allowedCount = MAX_FILES - currentFileCount
       if (allowedCount > 0) {
-        setError(`You can only upload up to ${MAX_FILES} files. Only the first ${allowedCount} file(s) will be added.`)
+        setError(t("upload.errors.maxFilesExceeded", { maxFiles: MAX_FILES, allowedCount }))
         return validFiles.slice(0, allowedCount)
       } else {
-        setError(`You can only upload up to ${MAX_FILES} files. Please remove some files first.`)
+        setError(t("upload.errors.maxFilesReached", { maxFiles: MAX_FILES }))
         return []
       }
     }
@@ -220,9 +222,9 @@ export function UploadPage() {
       <main className="flex-1 flex flex-col items-center justify-center p-10 overflow-auto" onClick={handleMainContentClick}>
         <div className="w-full max-w-2xl">
           <header className="mb-8">
-            <h1 className={`text-3xl font-semibold mb-3 ${getTextColor()}`}>Upload your course materials</h1>
+            <h1 className={`text-3xl font-semibold mb-3 ${getTextColor()}`}>{t("upload.title")}</h1>
             <p className={`text-sm ${getMutedText()}`}>
-              Upload up to {MAX_FILES} PDF files to kick-start outline generation. Your documents remain private and are only used for this session.
+              {t("upload.description", { maxFiles: MAX_FILES })}
             </p>
           </header>
 
@@ -240,10 +242,10 @@ export function UploadPage() {
           >
             <div className="flex flex-col items-center text-center gap-4 px-10 py-14">
               <div className="flex flex-col gap-1">
-                <span className={`text-lg font-medium ${getTextColor()}`}>Drag &amp; drop your PDF files here</span>
+                <span className={`text-lg font-medium ${getTextColor()}`}>{t("upload.dragDrop")}</span>
                 <span className={`text-sm ${getMutedText()}`}>
-                  Only PDF files are supported at the moment
-                  {selectedFiles.length > 0 && ` (${selectedFiles.length}/${MAX_FILES} files selected)`}
+                  {t("upload.onlyPdfSupported")}
+                  {selectedFiles.length > 0 && ` ${t("upload.filesSelected", { count: selectedFiles.length, maxFiles: MAX_FILES })}`}
                 </span>
               </div>
 
@@ -255,7 +257,7 @@ export function UploadPage() {
                   theme === "light" ? "text-white" : "text-[#1E2025]"
                 }`}
               >
-                Browse files
+                {t("upload.browseFiles")}
               </button>
 
               <input
@@ -285,7 +287,7 @@ export function UploadPage() {
                     onClick={() => handleRemoveFile(index)}
                     className="text-sm text-red-600 hover:text-red-700 dark:text-[#FF6B6B] dark:hover:text-[#FF8A8A] transition-colors ml-4 flex-shrink-0"
                   >
-                    Remove
+                    {t("upload.remove")}
                   </button>
                 </div>
               ))}
