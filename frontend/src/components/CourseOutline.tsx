@@ -140,11 +140,6 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
               </button>
             )}
           </div>
-          {title && (
-            <h3 className={`text-xl font-semibold ${getTextColor()} mb-6`}>
-              {title}
-            </h3>
-          )}
         </div>
 
         {outline.length > 0 && (
