@@ -275,6 +275,11 @@
         "email": "example@email.com"
       }
     }
+  },
+  "modal": {
+    "defaultTitle": "Confirm Action",
+    "defaultConfirm": "Confirm",
+    "defaultCancel": "Cancel"
   }
 }
 

@@ -1,5 +1,6 @@
 import * as React from "react"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -17,11 +18,18 @@ export function Modal({
   isOpen,
   onClose,
   onConfirm,
-  title = "Confirm Action",
+  title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
 }: ModalProps) {
+  const { t } = useTranslation()
+  
+  // Use translated defaults if not provided
+  const modalTitle = title ?? t("modal.defaultTitle")
+  const modalConfirmText = confirmText ?? t("modal.defaultConfirm")
+  const modalCancelText = cancelText ?? t("modal.defaultCancel")
+  
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -90,8 +98,8 @@ export function Modal({
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {title && (
-          <h2 className={`text-xl font-semibold ${getTextColor()} mb-4`}>{title}</h2>
+        {modalTitle && (
+          <h2 className={`text-xl font-semibold ${getTextColor()} mb-4`}>{modalTitle}</h2>
         )}
         <p className={`text-sm ${getMutedText()} mb-6`}>{message}</p>
         <div className="flex gap-3 justify-end">
@@ -100,14 +108,14 @@ export function Modal({
             onClick={onClose}
             className="cursor-pointer"
           >
-            {cancelText}
+            {modalCancelText}
           </Button>
           <Button
             variant="default"
             onClick={onConfirm}
             className="cursor-pointer"
           >
-            {confirmText}
+            {modalConfirmText}
           </Button>
         </div>
       </div>

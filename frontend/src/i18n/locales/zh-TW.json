@@ -275,6 +275,11 @@
         "email": "example@email.com"
       }
     }
+  },
+  "modal": {
+    "defaultTitle": "確認操作",
+    "defaultConfirm": "確認",
+    "defaultCancel": "取消"
   }
 }
 
