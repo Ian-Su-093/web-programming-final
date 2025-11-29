@@ -90,7 +90,7 @@ export function HomePage() {
   }
 
   const handleGetStartedClick = () => {
-    navigate("/user/dashboard")
+    navigate("/login")
   }
 
   return (
