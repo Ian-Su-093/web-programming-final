@@ -209,6 +209,16 @@ export function OutlinePage() {
       return
     }
 
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      role: "user",
+      content: content.trim(),
+      timestamp: new Date(),
+    }
+
+    // Add optimistic message immediately
+    setMessages((prev) => [...prev, optimisticMessage])
     sendingRef.current = true
     setIsLoading(true)
 
@@ -217,6 +227,7 @@ export function OutlinePage() {
       await createMessage(id, content)
 
       // Refetch all messages to get the updated conversation (including any assistant responses)
+      // This will replace the optimistic message with the real one from the server
       const response = await getMessagesByCourseId(id)
       const convertedMessages = response.messages
         .map(convertMessageModelToMessage)
@@ -225,6 +236,8 @@ export function OutlinePage() {
       setMessages(convertedMessages)
     } catch (error) {
       console.error("Failed to send message:", error)
+      // Remove the optimistic message on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
       // Optionally show an error message to the user
       // For now, we'll just log it
     } finally {
