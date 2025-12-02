@@ -52,11 +52,16 @@ export function WebDesignPage() {
 
       try {
         const response = await getMessagesByCourseId(id)
+        console.log("Received chat history (raw):", response)
+        console.log("Raw messages array:", response.messages)
+
         // Convert MessageModel[] to Message[]
+        // Filter out null values (messages with null content)
         const convertedMessages = response.messages
           .map(convertMessageModelToMessage)
-          .filter((msg) => msg.content) // Filter out messages with empty content
-        
+          .filter((msg): msg is Message => msg !== null)
+
+        console.log("Converted chat history:", convertedMessages)
         setMessages(convertedMessages)
       } catch (error) {
         console.error("Failed to fetch messages:", error)
@@ -67,7 +72,7 @@ export function WebDesignPage() {
     fetchCourseData()
     fetchMessages()
   }, [id])
-  
+
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -77,7 +82,7 @@ export function WebDesignPage() {
   // Apply theme on mount and when theme changes
   useEffect(() => {
     document.documentElement.classList.remove("dark", "theme-light")
-    
+
     if (theme === "system") {
       const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
       document.documentElement.classList.toggle("dark", systemPrefersDark)
@@ -242,14 +247,14 @@ export function WebDesignPage() {
 
   return (
     <div ref={containerRef} className={`flex h-screen ${getBgColor()} overflow-hidden`} onClick={handleMainContentClick}>
-      <Sidebar 
+      <Sidebar
         ref={sidebarRef}
-        currentStep={3} 
+        currentStep={3}
         onStepSelect={handleStepSelect}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
       />
-      
+
       <Modal
         isOpen={showConfirmModal}
         onClose={handleCancel}
@@ -276,9 +281,8 @@ export function WebDesignPage() {
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>
@@ -313,9 +317,8 @@ export function WebDesignPage() {
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>

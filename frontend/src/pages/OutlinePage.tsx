@@ -8,7 +8,7 @@ import { CourseOutline } from "@/components/CourseOutline"
 import { Sidebar } from "@/components/Sidebar"
 import { Modal } from "@/components/ui/modal"
 import type { CourseData, Message } from "@/types"
-import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage } from "@/lib/api"
+import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage } from "@/lib/api"
 
 const mockCourseData: CourseData = {
   title: "AI-Powered Course Design with React & Next.js",
@@ -68,6 +68,7 @@ export function OutlinePage() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const sendingRef = useRef(false) // Add this ref to track if a send is in progress
 
   // Fetch course data and messages on mount
   useEffect(() => {
@@ -78,7 +79,7 @@ export function OutlinePage() {
 
       try {
         const response = await getCourseById(id)
-        
+
         // Update course title with actual name from API
         setCourseData((prev) => ({
           ...prev,
@@ -98,10 +99,11 @@ export function OutlinePage() {
       try {
         const response = await getMessagesByCourseId(id)
         // Convert MessageModel[] to Message[]
+        // Filter out null values (messages with null content)
         const convertedMessages = response.messages
           .map(convertMessageModelToMessage)
-          .filter((msg) => msg.content) // Filter out messages with empty content
-        
+          .filter((msg): msg is Message => msg !== null)
+
         setMessages(convertedMessages)
       } catch (error) {
         console.error("Failed to fetch messages:", error)
@@ -197,59 +199,38 @@ export function OutlinePage() {
   }
 
   const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content,
-      timestamp: new Date(),
+    if (!id) {
+      console.error("Course ID is missing")
+      return
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    // Prevent duplicate sends
+    if (sendingRef.current || isLoading) {
+      return
+    }
+
+    sendingRef.current = true
     setIsLoading(true)
 
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: t("outline.assistant.demoResponse"),
-        timestamp: new Date(),
-      }
+    try {
+      // Send the message to the backend
+      await createMessage(id, content)
 
-      setMessages((prev) => [...prev, assistantMessage])
+      // Refetch all messages to get the updated conversation (including any assistant responses)
+      const response = await getMessagesByCourseId(id)
+      const convertedMessages = response.messages
+        .map(convertMessageModelToMessage)
+        .filter((msg): msg is Message => msg !== null)
+
+      setMessages(convertedMessages)
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      // Optionally show an error message to the user
+      // For now, we'll just log it
+    } finally {
       setIsLoading(false)
-
-      if (content.toLowerCase().includes("course") || content.toLowerCase().includes("outline")) {
-        setCourseData({
-          title: "AI-Powered Course Design with React & Next.js",
-          outline: [
-            {
-              id: "1",
-              title: "Kickoff & Discovery",
-              description: "Overview of course planning fundamentals",
-              duration: "2 hours",
-              week: 1,
-              topics: [
-                "Define target learner persona",
-                "Capture scope with zod-powered schemas",
-                "Map conversational UX flows",
-              ],
-            },
-            {
-              id: "2",
-              title: "Interface Foundations",
-              description: "Deep dive into advanced concepts",
-              duration: "3 hours",
-              week: 2,
-              topics: [
-                "Design One Dark Pro inspired UI with Tailwind & shadcn primitives",
-                "Structure chat and outline panes in Next.js App Router",
-                "Instrument chat state management patterns",
-              ],
-            },
-          ],
-        })
-      }
-    }, 1000)
+      sendingRef.current = false
+    }
   }
 
   const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {

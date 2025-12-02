@@ -150,7 +150,13 @@ export async function getMessagesByCourseId(courseId: string): Promise<MultipleM
 }
 
 // Helper function to convert MessageModel to Message type (for frontend components)
-export function convertMessageModelToMessage(messageModel: MessageModel): { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date } {
+// Returns null if the message has no content (filters out messages with null content)
+export function convertMessageModelToMessage(messageModel: MessageModel): { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date } | null {
+    // Filter out messages with null content
+    if (messageModel.content === null || messageModel.content === undefined) {
+        return null
+    }
+
     // Filter out tool messages and only include user/assistant messages
     if (messageModel.role === 'tool') {
         // For tool messages, we might want to skip them or convert them differently
@@ -166,7 +172,7 @@ export function convertMessageModelToMessage(messageModel: MessageModel): { id: 
     return {
         id: messageModel.id,
         role: messageModel.role as 'user' | 'assistant',
-        content: messageModel.content || '',
+        content: messageModel.content,
         timestamp: new Date(messageModel.createdAt),
     }
 }
@@ -203,4 +209,21 @@ export async function createCourse(courseName: string, files: File[]): Promise<C
     }
 
     return response.json()
+}
+
+// Create a new message by user
+export interface CreateMessageRequest {
+    content: string
+}
+
+export interface SingleMessageResponse {
+    status: string
+    message: MessageModel
+}
+
+export async function createMessage(courseId: string, content: string): Promise<SingleMessageResponse> {
+    return apiRequest<SingleMessageResponse>(`/api/v1/course/${courseId}/message`, {
+        method: 'POST',
+        body: JSON.stringify({ content } as CreateMessageRequest),
+    })
 }
