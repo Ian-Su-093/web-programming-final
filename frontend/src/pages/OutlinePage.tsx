@@ -10,33 +10,6 @@ import { Modal } from "@/components/ui/modal"
 import type { CourseData, Message } from "@/types"
 import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage } from "@/lib/api"
 
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "I want to build a course that teaches developers how to co-create outlines with AI.",
-    timestamp: new Date("2024-04-12T09:27:00"),
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content: "Great! Tell me about your target learners and how you envision supporting them after each module.",
-    timestamp: new Date("2024-04-12T09:27:00"),
-  },
-  {
-    id: "3",
-    role: "user",
-    content: "They already know React. I need structure that shows how to pair UI craft with AI prompts.",
-    timestamp: new Date("2024-04-12T09:29:00"),
-  },
-  {
-    id: "4",
-    role: "assistant",
-    content: "Understood. I drafted an outline that escalates from foundational UX to advanced AI orchestration. Feel free to iterate further below.",
-    timestamp: new Date("2024-04-12T09:30:00"),
-  },
-]
-
 const mockCourseData: CourseData = {
   title: "AI-Powered Course Design with React & Next.js",
   outline: [
