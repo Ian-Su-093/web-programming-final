@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react"
 import type { ChangeEvent, DragEvent } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import "@/App.css"
 import { Sidebar } from "@/components/Sidebar"
@@ -21,7 +21,6 @@ export function UploadPage() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const courseNameInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const { id } = useParams<{ id: string }>()
 
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {

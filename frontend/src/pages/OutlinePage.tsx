@@ -84,7 +84,6 @@ export function OutlinePage() {
   const [messages, setMessages] = useState<Message[]>(mockMessages)
   const [courseData, setCourseData] = useState<CourseData>(mockCourseData)
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingCourse, setIsLoadingCourse] = useState(true)
   const [chatWidth, setChatWidth] = useState(66.67)
   const [isResizing, setIsResizing] = useState(false)
   const [isChatHidden, setIsChatHidden] = useState(false)
@@ -101,12 +100,10 @@ export function OutlinePage() {
   useEffect(() => {
     const fetchCourseData = async () => {
       if (!id) {
-        setIsLoadingCourse(false)
         return
       }
 
       try {
-        setIsLoadingCourse(true)
         const response = await getCourseById(id)
         
         // Update course title with actual name from API
@@ -117,8 +114,6 @@ export function OutlinePage() {
       } catch (error) {
         console.error("Failed to fetch course data:", error)
         // Keep the mock data on error
-      } finally {
-        setIsLoadingCourse(false)
       }
     }
 
