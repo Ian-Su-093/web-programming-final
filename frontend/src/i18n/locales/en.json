@@ -131,11 +131,22 @@
     "filesSelected": "({{count}}/{{maxFiles}} files selected)",
     "browseFiles": "Browse files",
     "remove": "Remove",
+    "creatingCourse": "Creating course...",
+    "courseNameModal": {
+      "title": "Enter Course Name",
+      "description": "Please enter a name for your course.",
+      "placeholder": "Course name",
+      "cancel": "Cancel",
+      "create": "Create Course"
+    },
     "errors": {
       "onlyPdf": "Please upload only PDF files.",
       "uploadPdf": "Please upload PDF files.",
       "maxFilesExceeded": "You can only upload up to {{maxFiles}} files. Only the first {{allowedCount}} file(s) will be added.",
-      "maxFilesReached": "You can only upload up to {{maxFiles}} files. Please remove some files first."
+      "maxFilesReached": "You can only upload up to {{maxFiles}} files. Please remove some files first.",
+      "noFilesSelected": "Please select at least one file before proceeding to the next step.",
+      "courseCreationFailed": "Failed to create course. Please try again.",
+      "courseNameRequired": "Please enter a course name."
     }
   },
   "sidebar": {
@@ -282,4 +293,3 @@
     "defaultCancel": "Cancel"
   }
 }
-

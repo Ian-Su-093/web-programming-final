@@ -131,11 +131,22 @@
     "filesSelected": "（已選擇 {{count}}/{{maxFiles}} 個檔案）",
     "browseFiles": "瀏覽檔案",
     "remove": "移除",
+    "creatingCourse": "正在建立課程...",
+    "courseNameModal": {
+      "title": "輸入課程名稱",
+      "description": "請輸入您的課程名稱。",
+      "placeholder": "課程名稱",
+      "cancel": "取消",
+      "create": "建立課程"
+    },
     "errors": {
       "onlyPdf": "請僅上傳 PDF 檔案。",
       "uploadPdf": "請上傳 PDF 檔案。",
       "maxFilesExceeded": "您最多只能上傳 {{maxFiles}} 個檔案。只會新增前 {{allowedCount}} 個檔案。",
-      "maxFilesReached": "您最多只能上傳 {{maxFiles}} 個檔案。請先移除一些檔案。"
+      "maxFilesReached": "您最多只能上傳 {{maxFiles}} 個檔案。請先移除一些檔案。",
+      "noFilesSelected": "請至少選擇一個檔案後再繼續下一步。",
+      "courseCreationFailed": "建立課程失敗。請再試一次。",
+      "courseNameRequired": "請輸入課程名稱。"
     }
   },
   "sidebar": {
@@ -282,4 +293,3 @@
     "defaultCancel": "取消"
   }
 }
-

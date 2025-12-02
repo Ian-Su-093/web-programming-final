@@ -25,7 +25,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
-  
+
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -297,15 +297,14 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
               >
                 <div className="max-w-[85%]">
                   <div
-                    className={`rounded-lg px-4 py-3 border ${
-                      message.role === "user"
+                    className={`rounded-lg px-4 py-3 border ${message.role === "user"
                         ? theme === "light"
                           ? "bg-blue-100 text-gray-800 border-blue-200 shadow-[0_4px_8px_rgba(59,130,246,0.15)]"
                           : "bg-[#33365D] text-[#E0E0E0] border-[#444985] shadow-[0_4px_8px_rgba(139,92,246,0.15)]"
                         : theme === "light"
-                        ? "bg-gray-100 text-gray-800 border-gray-200"
-                        : "bg-[#1D2434] text-[#E0E0E0] border-[#252C3C]"
-                    }`}
+                          ? "bg-gray-100 text-gray-800 border-gray-200"
+                          : "bg-[#1D2434] text-[#E0E0E0] border-[#252C3C]"
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"} uppercase`}>
@@ -390,4 +389,5 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
     </div>
   )
 }
+
 

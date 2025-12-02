@@ -8,6 +8,7 @@ import { CourseOutline } from "@/components/CourseOutline"
 import { Sidebar } from "@/components/Sidebar"
 import { Modal } from "@/components/ui/modal"
 import type { CourseData, Message } from "@/types"
+import { getCourseById } from "@/lib/api"
 
 const mockMessages: Message[] = [
   {
@@ -83,6 +84,7 @@ export function OutlinePage() {
   const [messages, setMessages] = useState<Message[]>(mockMessages)
   const [courseData, setCourseData] = useState<CourseData>(mockCourseData)
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingCourse, setIsLoadingCourse] = useState(true)
   const [chatWidth, setChatWidth] = useState(66.67)
   const [isResizing, setIsResizing] = useState(false)
   const [isChatHidden, setIsChatHidden] = useState(false)
@@ -94,7 +96,35 @@ export function OutlinePage() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  
+
+  // Fetch course data on mount
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      if (!id) {
+        setIsLoadingCourse(false)
+        return
+      }
+
+      try {
+        setIsLoadingCourse(true)
+        const response = await getCourseById(id)
+        
+        // Update course title with actual name from API
+        setCourseData((prev) => ({
+          ...prev,
+          title: response.course.name,
+        }))
+      } catch (error) {
+        console.error("Failed to fetch course data:", error)
+        // Keep the mock data on error
+      } finally {
+        setIsLoadingCourse(false)
+      }
+    }
+
+    fetchCourseData()
+  }, [id])
+
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -104,7 +134,7 @@ export function OutlinePage() {
   // Apply theme on mount and when theme changes
   useEffect(() => {
     document.documentElement.classList.remove("dark", "theme-light")
-    
+
     if (theme === "system") {
       const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
       document.documentElement.classList.toggle("dark", systemPrefersDark)
@@ -283,14 +313,14 @@ export function OutlinePage() {
 
   return (
     <div ref={containerRef} className={`flex h-screen ${getBgColor()} overflow-hidden`} onClick={handleMainContentClick}>
-      <Sidebar 
+      <Sidebar
         ref={sidebarRef}
-        currentStep={2} 
+        currentStep={2}
         onStepSelect={handleStepSelect}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
       />
-      
+
       <Modal
         isOpen={showConfirmModal}
         onClose={handleCancel}
@@ -315,9 +345,8 @@ export function OutlinePage() {
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>
@@ -330,8 +359,6 @@ export function OutlinePage() {
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
-                  onCourseTitleChange={(title) => setCourseData({ ...courseData, title })}
-                  isEditable={true}
                 />
               </div>
             </>
@@ -345,16 +372,13 @@ export function OutlinePage() {
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
-                  onCourseTitleChange={(title) => setCourseData({ ...courseData, title })}
-                  isEditable={true}
                 />
               </div>
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>
@@ -385,4 +409,6 @@ export function OutlinePage() {
     </div>
   )
 }
+
+
 

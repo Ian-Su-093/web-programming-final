@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, forwardRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Menu, X, User, CheckCircle2, Circle, LogOut, LayoutDashboard } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 type SidebarProps = {
   currentStep?: 1 | 2 | 3
@@ -14,6 +15,7 @@ type StepState = "completed" | "current" | "upcoming"
 
 export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep = 2, onStepSelect, isCollapsed: externalIsCollapsed, onCollapseChange }, ref) => {
   const { t } = useTranslation()
+  const { logout } = useAuth()
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(true)
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -166,9 +168,9 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
     navigate("/user/dashboard")
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowUserMenu(false)
-    // Redirect to login page
+    await logout()
     navigate("/login")
   }
 

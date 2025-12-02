@@ -4,51 +4,36 @@ import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Trash2, Pencil, Ch
 import type { Project } from "@/types"
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n/config"
+import { useAuth } from "@/contexts/AuthContext"
+import { getAllCourses, type CourseModel } from "@/lib/api"
 
-// Mock projects data
-const mockProjects: Project[] = [
-  {
-    id: "project-1713175800000",
-    name: "AI-Powered Course Design with React & Next.js",
-    updatedAt: new Date("2024-04-15T10:30:00"),
-    currentStep: "3",
-  },
-  {
-    id: "project-1713088800000",
-    name: "Introduction to Web Development",
-    updatedAt: new Date("2024-04-14T15:20:00"),
-    currentStep: "2",
-  },
-  {
-    id: "project-1713002100000",
-    name: "Advanced TypeScript Patterns",
-    updatedAt: new Date("2024-04-13T09:15:00"),
-    currentStep: "1",
-  },
-  {
-    id: "project-1712916300000",
-    name: "Full-Stack JavaScript Mastery",
-    updatedAt: new Date("2024-04-12T14:45:00"),
-    currentStep: "2",
-  },
-  {
-    id: "project-1712830200000",
-    name: "Machine Learning Fundamentals",
-    updatedAt: new Date("2024-04-11T11:00:00"),
-    currentStep: "1",
-  },
-  {
-    id: "project-1712743800000",
-    name: "UI/UX Design Principles",
-    updatedAt: new Date("2024-04-10T16:30:00"),
-    currentStep: "3",
-  },
-]
+// Map CourseModel to Project type
+function mapCourseToProject(course: CourseModel): Project {
+  // Map phase to currentStep:
+  // - undefined or no phase -> "1" (upload stage)
+  // - "markdown" -> "2" (outline stage)
+  // - "website" -> "3" (design stage)
+  // Note: Step "4" (deployed) doesn't exist in API, so we don't map to it
+  let currentStep: "1" | "2" | "3" | "4" = "1"
+  if (course.phase === "markdown") {
+    currentStep = "2"
+  } else if (course.phase === "website") {
+    currentStep = "3"
+  }
+
+  return {
+    id: course.id,
+    name: course.name,
+    updatedAt: new Date(course.updated_at),
+    currentStep,
+  }
+}
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
+  const { user, logout, updatePreferences } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   // Determine active tab from route
@@ -75,43 +60,112 @@ export function DashboardPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [isEditingUsername, setIsEditingUsername] = useState(false)
-  const [username, setUsername] = useState("Guest")
-  const [editedUsername, setEditedUsername] = useState("Guest")
+  const [username, setUsername] = useState(() => user?.name || user?.email || "Guest")
+  const [editedUsername, setEditedUsername] = useState(() => user?.name || user?.email || "Guest")
+
+  // Update username when user changes
+  useEffect(() => {
+    if (user) {
+      const displayName = user.name || user.email || "Guest"
+      setUsername(displayName)
+      setEditedUsername(displayName)
+    }
+  }, [user])
+
+  // Initialize theme and language from user preferences or localStorage
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
+    // First try to get from user preferences
+    if (user?.preferences?.theme) {
+      return user.preferences.theme
+    }
+    // Fallback to localStorage
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
     return savedTheme || "dark"
   })
   const [currentLanguage, setCurrentLanguage] = useState<string>(() => {
+    // First try to get from user preferences
+    if (user?.preferences?.language) {
+      return user.preferences.language
+    }
+    // Fallback to localStorage
     return localStorage.getItem("language") || "en"
   })
+
+  // Sync preferences when user data changes
+  useEffect(() => {
+    if (user?.preferences) {
+      if (user.preferences.theme) {
+        setTheme(user.preferences.theme)
+        localStorage.setItem("theme", user.preferences.theme)
+      }
+      if (user.preferences.language) {
+        setCurrentLanguage(user.preferences.language)
+        i18n.changeLanguage(user.preferences.language)
+        localStorage.setItem("language", user.preferences.language)
+      }
+    }
+  }, [user])
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
   const languageDropdownRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Projects state
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true)
+  const [projectsError, setProjectsError] = useState<string | null>(null)
+
+  // Fetch courses from API
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!user) {
+        setIsLoadingProjects(false)
+        return
+      }
+
+      try {
+        setIsLoadingProjects(true)
+        setProjectsError(null)
+        const response = await getAllCourses()
+        if (response.status === "success") {
+          const mappedProjects = response.courses.map(mapCourseToProject)
+          setProjects(mappedProjects)
+        }
+      } catch (error) {
+        console.error("Failed to fetch courses:", error)
+        setProjectsError(error instanceof Error ? error.message : "Failed to load courses")
+        setProjects([])
+      } finally {
+        setIsLoadingProjects(false)
+      }
+    }
+
+    fetchCourses()
+  }, [user])
+
+  // Calculate statistics
+  const totalProjects = projects.filter((p) => p.currentStep !== "1").length
+  const step2Count = projects.filter((p) => p.currentStep === "2").length
+  const step3Count = projects.filter((p) => p.currentStep === "3").length
+  const step4Count = projects.filter((p) => p.currentStep === "4").length
+
+  // Group projects by step and sort by updated date (newest first)
+  const step2Projects = projects
+    .filter((p) => p.currentStep === "2")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+
+  const step3Projects = projects
+    .filter((p) => p.currentStep === "3")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+
+  const step4Projects = projects
+    .filter((p) => p.currentStep === "4")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 
   // Tooltip state
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastMousePositionRef = useRef<{ x: number; y: number } | null>(null)
   const mouseMoveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Calculate statistics
-  const totalProjects = mockProjects.filter((p) => p.currentStep !== "1").length
-  const step2Count = mockProjects.filter((p) => p.currentStep === "2").length
-  const step3Count = mockProjects.filter((p) => p.currentStep === "3").length
-  const step4Count = mockProjects.filter((p) => p.currentStep === "4").length
-
-  // Group projects by step and sort by updated date (newest first)
-  const step2Projects = mockProjects
-    .filter((p) => p.currentStep === "2")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-
-  const step3Projects = mockProjects
-    .filter((p) => p.currentStep === "3")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-
-  const step4Projects = mockProjects
-    .filter((p) => p.currentStep === "4")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -138,7 +192,7 @@ export function DashboardPage() {
 
   const handleCreateNewCourse = () => {
     // Generate a unique project ID that doesn't conflict with existing projects
-    const newProjectId = generateUniqueProjectId(mockProjects)
+    const newProjectId = generateUniqueProjectId(projects)
     navigate(`/${newProjectId}/upload`)
   }
 
@@ -156,9 +210,9 @@ export function DashboardPage() {
     setShowUserMenu(!showUserMenu)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowUserMenu(false)
-    // Redirect to login page
+    await logout()
     navigate("/login")
   }
 
@@ -198,11 +252,24 @@ export function DashboardPage() {
   }
 
   // Handle language change
-  const handleLanguageChange = (lang: string) => {
+  const handleLanguageChange = async (lang: string) => {
     setCurrentLanguage(lang)
     i18n.changeLanguage(lang)
     localStorage.setItem("language", lang)
     setShowLanguageDropdown(false)
+
+    // Update preferences via API if user is authenticated
+    if (user) {
+      try {
+        await updatePreferences({
+          theme: theme,
+          language: lang as 'en' | 'zh-TW',
+        })
+      } catch (error) {
+        console.error('Failed to update language preference:', error)
+        // Optionally show error message to user
+      }
+    }
   }
 
   // Sync language state with i18n on mount
@@ -232,9 +299,22 @@ export function DashboardPage() {
     }
   }, [showLanguageDropdown])
 
-  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+  const handleThemeChange = async (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme)
     localStorage.setItem("theme", newTheme)
+
+    // Update preferences via API if user is authenticated
+    if (user) {
+      try {
+        await updatePreferences({
+          theme: newTheme,
+          language: currentLanguage as 'en' | 'zh-TW',
+        })
+      } catch (error) {
+        console.error('Failed to update theme preference:', error)
+        // Optionally show error message to user
+      }
+    }
   }
 
   // Apply theme on mount and when theme changes
@@ -698,17 +778,56 @@ export function DashboardPage() {
                           {t("dashboard.projects.createNewCourse")}
                         </button>
                       </div>
-                      <div className="space-y-6">
-                        {renderProjectSection(t("dashboard.statistics.outlineStage"), step2Projects)}
-                        {step2Projects.length > 0 && (step3Projects.length > 0 || step4Projects.length > 0) && (
-                          <div className={`border-t ${getBorderColor()}`} />
-                        )}
-                        {renderProjectSection(t("dashboard.statistics.designStage"), step3Projects)}
-                        {step3Projects.length > 0 && step4Projects.length > 0 && (
-                          <div className={`border-t ${getBorderColor()}`} />
-                        )}
-                        {renderProjectSection(t("dashboard.statistics.deployed"), step4Projects)}
-                      </div>
+                      {isLoadingProjects ? (
+                        <div className={`text-center py-12 ${getMutedText()}`}>
+                          <p>{t("dashboard.projects.loading") || "Loading projects..."}</p>
+                        </div>
+                      ) : projectsError ? (
+                        <div className={`text-center py-12 ${getMutedText()}`}>
+                          <p className="text-red-500 dark:text-red-400 mb-2">{projectsError}</p>
+                          <button
+                            onClick={() => {
+                              const fetchCourses = async () => {
+                                if (!user) return
+                                try {
+                                  setIsLoadingProjects(true)
+                                  setProjectsError(null)
+                                  const response = await getAllCourses()
+                                  if (response.status === "success") {
+                                    const mappedProjects = response.courses.map(mapCourseToProject)
+                                    setProjects(mappedProjects)
+                                  }
+                                } catch (error) {
+                                  console.error("Failed to fetch courses:", error)
+                                  setProjectsError(error instanceof Error ? error.message : "Failed to load courses")
+                                } finally {
+                                  setIsLoadingProjects(false)
+                                }
+                              }
+                              fetchCourses()
+                            }}
+                            className={`rounded-md bg-[#61AFEF] px-4 py-2 text-sm font-medium transition hover:bg-[#82C6FF] ${theme === "light" ? "text-white" : "text-[#1E2025]"}`}
+                          >
+                            {t("dashboard.projects.retry") || "Retry"}
+                          </button>
+                        </div>
+                      ) : projects.length === 0 ? (
+                        <div className={`text-center py-12 ${getMutedText()}`}>
+                          <p>{t("dashboard.projects.noProjects") || "No projects yet. Create your first course to get started!"}</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {renderProjectSection(t("dashboard.statistics.outlineStage"), step2Projects)}
+                          {step2Projects.length > 0 && (step3Projects.length > 0 || step4Projects.length > 0) && (
+                            <div className={`border-t ${getBorderColor()}`} />
+                          )}
+                          {renderProjectSection(t("dashboard.statistics.designStage"), step3Projects)}
+                          {step3Projects.length > 0 && step4Projects.length > 0 && (
+                            <div className={`border-t ${getBorderColor()}`} />
+                          )}
+                          {renderProjectSection(t("dashboard.statistics.deployed"), step4Projects)}
+                        </div>
+                      )}
                     </section>
                   </>
                 )}
@@ -794,21 +913,19 @@ export function DashboardPage() {
                             <div className={`absolute top-full right-0 mt-2 rounded-md ${getCardBg()} border ${getBorderColor()} shadow-lg z-50 overflow-hidden min-w-[140px]`}>
                               <button
                                 onClick={() => handleLanguageChange("en")}
-                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                                  currentLanguage === "en"
-                                    ? `${getCardSurface()} ${getTextColor()} font-medium`
-                                    : `${getTextColor()} ${getHoverBg()}`
-                                }`}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${currentLanguage === "en"
+                                  ? `${getCardSurface()} ${getTextColor()} font-medium`
+                                  : `${getTextColor()} ${getHoverBg()}`
+                                  }`}
                               >
                                 {t("preferences.language.english")}
                               </button>
                               <button
                                 onClick={() => handleLanguageChange("zh-TW")}
-                                className={`w-full text-left px-3 py-2 text-sm transition-colors border-t ${getBorderColor()} ${
-                                  currentLanguage === "zh-TW"
-                                    ? `${getCardSurface()} ${getTextColor()} font-medium`
-                                    : `${getTextColor()} ${getHoverBg()}`
-                                }`}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors border-t ${getBorderColor()} ${currentLanguage === "zh-TW"
+                                  ? `${getCardSurface()} ${getTextColor()} font-medium`
+                                  : `${getTextColor()} ${getHoverBg()}`
+                                  }`}
                               >
                                 {t("preferences.language.traditionalChinese")}
                               </button>

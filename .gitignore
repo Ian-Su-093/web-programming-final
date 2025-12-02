@@ -38,3 +38,4 @@ backend/dist-ssr
 *.sw?
 
 openapi.json
+chat_history_readable.json
