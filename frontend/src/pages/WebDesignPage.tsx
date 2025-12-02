@@ -8,7 +8,7 @@ import { WebPreview } from "@/components/WebPreview"
 import { Sidebar } from "@/components/Sidebar"
 import { Modal } from "@/components/ui/modal"
 import type { Message } from "@/types"
-import { getCourseById } from "@/lib/api"
+import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage } from "@/lib/api"
 
 const mockMessages: Message[] = [
   {
@@ -39,7 +39,7 @@ const mockMessages: Message[] = [
 
 export function WebDesignPage() {
   const { t } = useTranslation()
-  const [messages, setMessages] = useState<Message[]>(mockMessages)
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [courseTitle, setCourseTitle] = useState<string>("")
   const [chatWidth, setChatWidth] = useState(66.67)
@@ -56,7 +56,7 @@ export function WebDesignPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
-  // Fetch course data on mount
+  // Fetch course data and messages on mount
   useEffect(() => {
     const fetchCourseData = async () => {
       if (!id) {
@@ -72,7 +72,27 @@ export function WebDesignPage() {
       }
     }
 
+    const fetchMessages = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getMessagesByCourseId(id)
+        // Convert MessageModel[] to Message[]
+        const convertedMessages = response.messages
+          .map(convertMessageModelToMessage)
+          .filter((msg) => msg.content) // Filter out messages with empty content
+        
+        setMessages(convertedMessages)
+      } catch (error) {
+        console.error("Failed to fetch messages:", error)
+        // Keep empty messages on error
+      }
+    }
+
     fetchCourseData()
+    fetchMessages()
   }, [id])
   
   // Theme state

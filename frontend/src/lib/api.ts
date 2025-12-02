@@ -79,6 +79,11 @@ export interface ToolCallFunction {
     arguments: string
 }
 
+export interface MultipleMessageResponse {
+    status: string
+    messages: MessageModel[]
+}
+
 // API client with credentials (cookies) support
 async function apiRequest<T>(
     endpoint: string,
@@ -137,6 +142,33 @@ export async function getAllCourses(): Promise<MultipleCourseResponse> {
 // Get a course by ID
 export async function getCourseById(courseId: string): Promise<CourseDetailResponse> {
     return apiRequest<CourseDetailResponse>(`/api/v1/course/${courseId}`)
+}
+
+// Get messages by course ID
+export async function getMessagesByCourseId(courseId: string): Promise<MultipleMessageResponse> {
+    return apiRequest<MultipleMessageResponse>(`/api/v1/course/${courseId}/message`)
+}
+
+// Helper function to convert MessageModel to Message type (for frontend components)
+export function convertMessageModelToMessage(messageModel: MessageModel): { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date } {
+    // Filter out tool messages and only include user/assistant messages
+    if (messageModel.role === 'tool') {
+        // For tool messages, we might want to skip them or convert them differently
+        // For now, we'll create a message with the tool name or content
+        return {
+            id: messageModel.id,
+            role: 'assistant', // Treat tool messages as assistant messages
+            content: messageModel.content || messageModel.toolName || 'Tool execution',
+            timestamp: new Date(messageModel.createdAt),
+        }
+    }
+
+    return {
+        id: messageModel.id,
+        role: messageModel.role as 'user' | 'assistant',
+        content: messageModel.content || '',
+        timestamp: new Date(messageModel.createdAt),
+    }
 }
 
 // Create a new course
