@@ -1,23 +1,20 @@
 import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { BookOpen, ChevronDown, ChevronLeft, ChevronFirst, ChevronLast } from "lucide-react"
+import { BookOpen, ChevronFirst, ChevronLast } from "lucide-react"
+import ReactMarkdown from "react-markdown"
 import type { CourseData } from "@/types"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 
 interface CourseOutlineProps {
   courseData: CourseData
   onToggleChat: () => void
   isChatHidden: boolean
   isSwapped?: boolean
+  markdown?: string
 }
 
-export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwapped = false }: CourseOutlineProps) {
+export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwapped = false, markdown }: CourseOutlineProps) {
   const { t } = useTranslation()
-  const { outline } = courseData
-  // Initialize with all modules expanded
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(
-    new Set(outline.map((item) => item.id))
-  )
 
   // Version dropdown state
   const [selectedVersion, setSelectedVersion] = useState<string>("1")
@@ -77,16 +74,6 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
     return "bg-[#111620]"
   }
 
-  const getCardBorder = () => {
-    if (theme === "light") return "border-gray-300"
-    return "border-[#3E4451]"
-  }
-
-  const getCardHoverBorder = () => {
-    if (theme === "light") return "hover:border-blue-400"
-    return "hover:border-[#61AFEF]/50"
-  }
-
   const getDividerColor = () => {
     if (theme === "light") return "bg-gray-200"
     return "bg-[#3E4451]"
@@ -101,11 +88,6 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
     if (theme === "light") return "border-gray-200"
     return "border-[#3E4451]"
   }
-
-  // Update expanded modules when outline changes
-  useEffect(() => {
-    setExpandedModules(new Set(outline.map((item) => item.id)))
-  }, [outline])
 
   // Handle clicks outside version dropdown
   useEffect(() => {
@@ -127,17 +109,6 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
     }
   }, [showVersionDropdown])
 
-  const toggleModule = (moduleId: string) => {
-    setExpandedModules((prev) => {
-      const next = new Set(prev)
-      if (next.has(moduleId)) {
-        next.delete(moduleId)
-      } else {
-        next.add(moduleId)
-      }
-      return next
-    })
-  }
 
   return (
     <div className={`h-screen ${getBgColor()} flex flex-col`}>
@@ -237,79 +208,63 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
           </div>
         </div>
 
-        {outline.length > 0 && (
+        {markdown && (
           <div className={`w-full h-px ${getDividerColor()} mb-6`}></div>
         )}
       </div>
 
       {/* Scrollable Content Section */}
       <div className="flex-1 overflow-y-auto p-6 pt-0">
-        {outline.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <BookOpen className={`w-12 h-12 mx-auto ${theme === "light" ? "text-gray-400" : "text-[#5C6370]"} mb-4`} />
-                <p className={theme === "light" ? "text-gray-500" : "text-[#5C6370]"}>
+        {!markdown ? (
+          <Card className="h-full min-h-[400px]">
+            <CardContent className="h-full flex items-center justify-center p-6">
+              <div className="text-center">
+                <BookOpen className={`w-16 h-16 mx-auto ${theme === "light" ? "text-gray-400" : "text-[#5C6370]"} mb-4`} />
+                <p className={`${theme === "light" ? "text-gray-600" : "text-[#ABB2BF]"} text-lg`}>
                   {t("outline.courseOutline.emptyState")}
                 </p>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {outline.map((item, index) => {
-              const isExpanded = expandedModules.has(item.id)
-              const moduleNumber = index + 1
-
-              return (
-                <Card
-                  key={item.id}
-                  className={`${getCardBorder()} ${getCardBg()} ${getCardHoverBorder()} transition-colors`}
-                >
-                  <CardHeader className="py-4 px-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="mb-3">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-                            <span className={`flex-shrink-0 text-xs font-medium ${getMutedText()} tracking-[0.3rem]`}>
-                              {t("outline.courseOutline.module")} {moduleNumber}
-                            </span>
-                            {item.week && (
-                              <span className={`w-full sm:w-auto text-[10px] font-medium text-[#8DB472] ${theme === "light" ? "bg-green-50" : "bg-[#1C212C]"} tracking-wider px-2 py-1 rounded-full text-center sm:text-left`}>
-                                {t("outline.courseOutline.week")} {item.week}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className={`text-base font-semibold ${getTextColor()} py-1`}>
-                            {item.title}
-                          </h3>
-                        </div>
-                        {isExpanded && item.topics && item.topics.length > 0 && (
-                          <ul className="space-y-2 mt-3 list-disc list-inside">
-                            {item.topics.map((topic, topicIndex) => (
-                              <li key={topicIndex} className={`text-sm ${getTextColor()}`}>
-                                {topic}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => toggleModule(item.id)}
-                        className={`flex-shrink-0 w-6 h-6 rounded-full ${getHoverBg()} flex items-center justify-center transition-colors`}
-                        aria-label={isExpanded ? t("outline.courseOutline.collapseModule") : t("outline.courseOutline.expandModule")}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className={`w-4 h-4 ${theme === "light" ? "text-gray-500" : "text-[#5C6370]"}`} />
-                        ) : (
-                          <ChevronLeft className={`w-4 h-4 ${theme === "light" ? "text-gray-500" : "text-[#5C6370]"}`} />
-                        )}
-                      </button>
-                    </div>
-                  </CardHeader>
-                </Card>
-              )
-            })}
+          <div className={`prose prose-sm max-w-none ${theme === "light" ? "prose-gray" : "prose-invert"} ${getTextColor()}`}>
+            <ReactMarkdown
+              components={{
+                h1: ({ children }) => <h1 className={`text-2xl font-bold mb-4 ${getTextColor()}`}>{children}</h1>,
+                h2: ({ children }) => <h2 className={`text-xl font-semibold mb-3 ${getTextColor()}`}>{children}</h2>,
+                h3: ({ children }) => <h3 className={`text-lg font-semibold mb-2 ${getTextColor()}`}>{children}</h3>,
+                h4: ({ children }) => <h4 className={`text-base font-semibold mb-2 ${getTextColor()}`}>{children}</h4>,
+                p: ({ children }) => <p className={`mb-4 ${getTextColor()} leading-relaxed`}>{children}</p>,
+                ul: ({ children }) => <ul className={`list-disc list-inside mb-4 space-y-1 ${getTextColor()}`}>{children}</ul>,
+                ol: ({ children }) => <ol className={`list-decimal list-inside mb-4 space-y-1 ${getTextColor()}`}>{children}</ol>,
+                li: ({ children }) => <li className={`${getTextColor()}`}>{children}</li>,
+                code: ({ children }) => (
+                  <code className={`px-1.5 py-0.5 rounded text-sm ${theme === "light" ? "bg-gray-100 text-gray-800" : "bg-[#282C34] text-[#ABB2BF]"}`}>
+                    {children}
+                  </code>
+                ),
+                pre: ({ children }) => (
+                  <pre className={`p-4 rounded-lg mb-4 overflow-x-auto ${theme === "light" ? "bg-gray-100 text-gray-800" : "bg-[#282C34] text-[#ABB2BF]"}`}>
+                    {children}
+                  </pre>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className={`border-l-4 pl-4 my-4 ${theme === "light" ? "border-gray-300 text-gray-700" : "border-[#61AFEF] text-[#ABB2BF]"}`}>
+                    {children}
+                  </blockquote>
+                ),
+                a: ({ children, href }) => (
+                  <a href={href} className={`underline ${theme === "light" ? "text-blue-600 hover:text-blue-800" : "text-[#61AFEF] hover:text-[#82C6FF]"}`}>
+                    {children}
+                  </a>
+                ),
+                strong: ({ children }) => <strong className={`font-semibold ${getTextColor()}`}>{children}</strong>,
+                em: ({ children }) => <em className={`italic ${getTextColor()}`}>{children}</em>,
+                hr: () => <hr className={`my-4 ${getDividerColor()}`} />,
+              }}
+            >
+              {markdown}
+            </ReactMarkdown>
           </div>
         )}
       </div>
