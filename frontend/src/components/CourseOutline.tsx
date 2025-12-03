@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { BookOpen, ChevronDown, ChevronLeft, ChevronFirst, ChevronLast } from "lucide-react"
 import type { CourseData } from "@/types"
@@ -18,6 +18,11 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
     new Set(outline.map((item) => item.id))
   )
+
+  // Version dropdown state
+  const [selectedVersion, setSelectedVersion] = useState<string>("1")
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false)
+  const versionDropdownRef = useRef<HTMLDivElement>(null)
 
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
@@ -87,10 +92,40 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
     return "bg-[#3E4451]"
   }
 
+  const getCardSurface = () => {
+    if (theme === "light") return "bg-gray-100"
+    return "bg-[#282C34]"
+  }
+
+  const getBorderColor = () => {
+    if (theme === "light") return "border-gray-200"
+    return "border-[#3E4451]"
+  }
+
   // Update expanded modules when outline changes
   useEffect(() => {
     setExpandedModules(new Set(outline.map((item) => item.id)))
   }, [outline])
+
+  // Handle clicks outside version dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        versionDropdownRef.current &&
+        !versionDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowVersionDropdown(false)
+      }
+    }
+
+    if (showVersionDropdown) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showVersionDropdown])
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
@@ -109,36 +144,96 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
       {/* Fixed Header Section */}
       <div className="flex-shrink-0 p-6 pb-0">
         <div className="mb-6">
-          <div className={`flex items-center gap-2 mb-4 ${isSwapped ? "justify-between" : ""}`}>
-            {!isSwapped && (
-              <button
-                onClick={onToggleChat}
-                className={`${getHoverBg()} rounded p-1 transition-colors`}
-                aria-label={t("outline.courseOutline.toggleChat")}
-              >
-                {isChatHidden ? (
-                  <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
-                ) : (
-                  <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+          <div className="flex items-center gap-2 mb-4 justify-between">
+            <div className="flex items-center gap-2">
+              {!isSwapped && (
+                <button
+                  onClick={onToggleChat}
+                  className={`${getHoverBg()} rounded p-1 transition-colors`}
+                  aria-label={t("outline.courseOutline.toggleChat")}
+                >
+                  {isChatHidden ? (
+                    <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  ) : (
+                    <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  )}
+                </button>
+              )}
+              <h2 className={`text-sm font-semibold ${getMutedText()} uppercase tracking-[0.4rem]`}>
+                {t("outline.courseOutline.title")}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative" ref={versionDropdownRef}>
+                <button
+                  onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+                  className={`flex items-center justify-between gap-2 px-3 py-2 rounded-md ${getCardSurface()} border ${getBorderColor()} ${getTextColor()} text-sm font-medium transition-colors ${getHoverBg()} min-w-[100px]`}
+                >
+                  <span>{t("outline.courseOutline.versionNumber", { number: selectedVersion })}</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showVersionDropdown ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showVersionDropdown && (
+                  <div className={`absolute top-full right-0 mt-2 rounded-md ${getCardBg()} border ${getBorderColor()} shadow-lg z-50 overflow-hidden min-w-[100px]`}>
+                    <button
+                      onClick={() => {
+                        setSelectedVersion("1")
+                        setShowVersionDropdown(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${selectedVersion === "1"
+                        ? `${getCardSurface()} ${getTextColor()} font-medium`
+                        : `${getTextColor()} ${getHoverBg()}`
+                        }`}
+                    >
+                      {t("outline.courseOutline.versionNumber", { number: "1" })}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedVersion("2")
+                        setShowVersionDropdown(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors border-t ${getBorderColor()} ${selectedVersion === "2"
+                        ? `${getCardSurface()} ${getTextColor()} font-medium`
+                        : `${getTextColor()} ${getHoverBg()}`
+                        }`}
+                    >
+                      {t("outline.courseOutline.versionNumber", { number: "2" })}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedVersion("3")
+                        setShowVersionDropdown(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors border-t ${getBorderColor()} ${selectedVersion === "3"
+                        ? `${getCardSurface()} ${getTextColor()} font-medium`
+                        : `${getTextColor()} ${getHoverBg()}`
+                        }`}
+                    >
+                      {t("outline.courseOutline.versionNumber", { number: "3" })}
+                    </button>
+                  </div>
                 )}
-              </button>
-            )}
-            <h2 className={`text-sm font-semibold ${getMutedText()} uppercase tracking-[0.4rem]`}>
-              {t("outline.courseOutline.title")}
-            </h2>
-            {isSwapped && (
-              <button
-                onClick={onToggleChat}
-                className={`${getHoverBg()} rounded p-1 transition-colors`}
-                aria-label={t("outline.courseOutline.toggleChat")}
-              >
-                {isChatHidden ? (
-                  <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
-                ) : (
-                  <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
-                )}
-              </button>
-            )}
+              </div>
+              {isSwapped && (
+                <button
+                  onClick={onToggleChat}
+                  className={`${getHoverBg()} rounded p-1 transition-colors`}
+                  aria-label={t("outline.courseOutline.toggleChat")}
+                >
+                  {isChatHidden ? (
+                    <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  ) : (
+                    <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

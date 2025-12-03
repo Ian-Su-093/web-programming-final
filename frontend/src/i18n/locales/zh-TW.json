@@ -192,7 +192,9 @@
       "module": "模組",
       "week": "週",
       "expandModule": "展開模組",
-      "collapseModule": "收合模組"
+      "collapseModule": "收合模組",
+      "version": "版本",
+      "versionNumber": "第 {{number}} 版"
     },
     "webDesign": {
       "modal": {

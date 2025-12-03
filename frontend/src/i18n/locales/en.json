@@ -192,7 +192,9 @@
       "module": "MODULE",
       "week": "WEEK",
       "expandModule": "Expand module",
-      "collapseModule": "Collapse module"
+      "collapseModule": "Collapse module",
+      "version": "Version",
+      "versionNumber": "Version {{number}}"
     },
     "webDesign": {
       "modal": {
