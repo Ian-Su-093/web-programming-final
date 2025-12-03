@@ -150,23 +150,33 @@ export async function getMessagesByCourseId(courseId: string): Promise<MultipleM
 }
 
 // Helper function to convert MessageModel to Message type (for frontend components)
-// Returns null if the message has no content (filters out messages with null content)
+// Returns null if the message should be filtered out (non-user/assistant messages without content, or assistant messages with toolCalls)
 export function convertMessageModelToMessage(messageModel: MessageModel): { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date } | null {
-    // Filter out messages with null content
-    if (messageModel.content === null || messageModel.content === undefined) {
-        return null
-    }
-
-    // Filter out tool messages and only include user/assistant messages
+    // Convert tool messages to assistant messages with a special marker for "processing"
+    // The ChatSection component will detect this marker and display the translated "processing" text
+    // Tool messages are always displayed, even if they have null content
     if (messageModel.role === 'tool') {
-        // For tool messages, we might want to skip them or convert them differently
-        // For now, we'll create a message with the tool name or content
         return {
             id: messageModel.id,
             role: 'assistant', // Treat tool messages as assistant messages
-            content: messageModel.content || messageModel.toolName || 'Tool execution',
+            content: '__TOOL_PROCESSING__', // Special marker that will be replaced with translated text in ChatSection
             timestamp: new Date(messageModel.createdAt),
         }
+    }
+
+    // Filter out assistant messages with toolCalls (these are tool call requests, not actual content)
+    if (messageModel.role === 'assistant' && messageModel.toolCalls && messageModel.toolCalls.length > 0) {
+        return null
+    }
+
+    // Only include user or assistant messages
+    if (messageModel.role !== 'user' && messageModel.role !== 'assistant') {
+        return null
+    }
+
+    // Filter out messages with null content (except tool messages which are handled above)
+    if (messageModel.content === null || messageModel.content === undefined) {
+        return null
     }
 
     return {

@@ -182,7 +182,8 @@
       "send": "傳送",
       "uploadPdf": "上傳 PDF 檔案",
       "you": "您",
-      "assistant": "助理"
+      "assistant": "助理",
+      "processing": "處理中..."
     },
     "courseOutline": {
       "title": "課程大綱",

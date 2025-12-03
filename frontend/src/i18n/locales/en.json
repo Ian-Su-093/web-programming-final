@@ -182,7 +182,8 @@
       "send": "Send",
       "uploadPdf": "Upload PDF file",
       "you": "YOU",
-      "assistant": "ASSISTANT"
+      "assistant": "ASSISTANT",
+      "processing": "Processing..."
     },
     "courseOutline": {
       "title": "Course Outline",
