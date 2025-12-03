@@ -6,7 +6,6 @@ import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
 import { CourseOutline } from "@/components/CourseOutline"
 import { Sidebar } from "@/components/Sidebar"
-import { Modal } from "@/components/ui/modal"
 import type { CourseData, Message } from "@/types"
 import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage } from "@/lib/api"
 
@@ -61,7 +60,6 @@ export function OutlinePage() {
   const [isResizing, setIsResizing] = useState(false)
   const [isChatHidden, setIsChatHidden] = useState(false)
   const [isSwapped, setIsSwapped] = useState(false)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
@@ -181,21 +179,11 @@ export function OutlinePage() {
   }
 
   const handleStepSelect = (step: 1 | 2 | 3) => {
-    if (step === 1) {
-      setShowConfirmModal(true)
-    } else if (step === 2) {
+    // Only allow proceeding to the next phase
+    if (step === 2) {
       id && navigate(`/${id}/web-design`)
     }
-    // Step 2 is current, but clicking it navigates to web-design
-  }
-
-  const handleConfirm = () => {
-    setShowConfirmModal(false)
-    id && navigate(`/${id}/upload`)
-  }
-
-  const handleCancel = () => {
-    setShowConfirmModal(false)
+    // Step 2 is current, clicking it navigates to web-design
   }
 
   const handleSendMessage = async (content: string) => {
@@ -301,15 +289,6 @@ export function OutlinePage() {
         onStepSelect={handleStepSelect}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
-      />
-
-      <Modal
-        isOpen={showConfirmModal}
-        onClose={handleCancel}
-        onConfirm={handleConfirm}
-        message={t("outline.modal.message")}
-        confirmText={t("outline.modal.continue")}
-        cancelText={t("outline.modal.cancel")}
       />
 
       {!isChatHidden && (

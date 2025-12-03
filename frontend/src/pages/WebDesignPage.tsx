@@ -6,7 +6,6 @@ import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
 import { WebPreview } from "@/components/WebPreview"
 import { Sidebar } from "@/components/Sidebar"
-import { Modal } from "@/components/ui/modal"
 import type { Message } from "@/types"
 import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage } from "@/lib/api"
 
@@ -20,8 +19,6 @@ export function WebDesignPage() {
   const [isChatHidden, setIsChatHidden] = useState(false)
   const [isPreviewHidden, setIsPreviewHidden] = useState(false)
   const [isSwapped, setIsSwapped] = useState(false)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [stepToNavigate, setStepToNavigate] = useState<1 | 2 | null>(null)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
@@ -139,38 +136,8 @@ export function WebDesignPage() {
   }
 
   const handleStepSelect = (step: 1 | 2 | 3) => {
-    if (step === 1) {
-      setStepToNavigate(1)
-      setShowConfirmModal(true)
-    } else if (step === 2) {
-      setStepToNavigate(2)
-      setShowConfirmModal(true)
-    }
-    // Step 3 is current, no action needed
-  }
-
-  const handleConfirm = () => {
-    setShowConfirmModal(false)
-    if (stepToNavigate === 1) {
-      id && navigate(`/${id}/upload`)
-    } else if (stepToNavigate === 2) {
-      id && navigate(`/${id}/outline`)
-    }
-    setStepToNavigate(null)
-  }
-
-  const handleCancel = () => {
-    setShowConfirmModal(false)
-    setStepToNavigate(null)
-  }
-
-  const getModalMessage = () => {
-    if (stepToNavigate === 1) {
-      return t("outline.webDesign.modal.uploadToOutline")
-    } else if (stepToNavigate === 2) {
-      return t("outline.webDesign.modal.outlineToLayout")
-    }
-    return t("outline.modal.message")
+    // Step 3 is the last phase, no action needed
+    // Users can only proceed forward, not go back
   }
 
   const handleSendMessage = async (content: string) => {
@@ -253,15 +220,6 @@ export function WebDesignPage() {
         onStepSelect={handleStepSelect}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
-      />
-
-      <Modal
-        isOpen={showConfirmModal}
-        onClose={handleCancel}
-        onConfirm={handleConfirm}
-        message={getModalMessage()}
-        confirmText={t("outline.webDesign.modal.continue")}
-        cancelText={t("outline.webDesign.modal.cancel")}
       />
 
       {!isChatHidden && !isPreviewHidden && (

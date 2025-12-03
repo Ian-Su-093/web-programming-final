@@ -133,7 +133,9 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
   const step3State = getStepState(3)
 
   const isStepDisabled = (step: 1 | 2 | 3) => {
-    return step > currentStep
+    // Disable future steps (step > currentStep) and previous steps (step < currentStep)
+    // Users can only proceed forward, not go back
+    return step !== currentStep
   }
 
   const toggleSidebar = () => {
