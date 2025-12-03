@@ -2,18 +2,16 @@ import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { BookOpen, ChevronFirst, ChevronLast } from "lucide-react"
 import ReactMarkdown from "react-markdown"
-import type { CourseData } from "@/types"
 import { Card, CardContent } from "@/components/ui/card"
 
 interface CourseOutlineProps {
-  courseData: CourseData
   onToggleChat: () => void
   isChatHidden: boolean
   isSwapped?: boolean
   markdown?: string
 }
 
-export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwapped = false, markdown }: CourseOutlineProps) {
+export function CourseOutline({ onToggleChat, isChatHidden, isSwapped = false, markdown }: CourseOutlineProps) {
   const { t } = useTranslation()
 
   // Version dropdown state
