@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
-import { useTranslation } from "react-i18next"
+import { useParams } from "react-router-dom"
 import type { MouseEvent as ReactMouseEvent } from "react"
 import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
@@ -10,7 +9,6 @@ import type { Message } from "@/types"
 import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage } from "@/lib/api"
 
 export function WebDesignPage() {
-  const { t } = useTranslation()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [courseTitle, setCourseTitle] = useState<string>("")
@@ -23,7 +21,6 @@ export function WebDesignPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
-  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
   // Fetch course data and messages on mount
@@ -135,7 +132,7 @@ export function WebDesignPage() {
     return "bg-[#3E4451]"
   }
 
-  const handleStepSelect = (step: 1 | 2 | 3) => {
+  const handleStepSelect = (_step: 1 | 2 | 3) => {
     // Step 3 is the last phase, no action needed
     // Users can only proceed forward, not go back
   }

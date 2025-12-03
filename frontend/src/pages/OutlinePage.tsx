@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { useTranslation } from "react-i18next"
 import type { MouseEvent as ReactMouseEvent } from "react"
 import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
@@ -52,7 +51,6 @@ const mockCourseData: CourseData = {
 }
 
 export function OutlinePage() {
-  const { t } = useTranslation()
   const [messages, setMessages] = useState<Message[]>([])
   const [courseData, setCourseData] = useState<CourseData>(mockCourseData)
   const [isLoading, setIsLoading] = useState(false)
