@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Trash2, Pencil, Check, X, Sun, Moon, Monitor, Languages } from "lucide-react"
+import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Sun, Moon, Monitor, Languages } from "lucide-react"
 import type { Project } from "@/types"
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n/config"
@@ -57,20 +57,7 @@ export function DashboardPage() {
     }
   }
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [deleteConfirmText, setDeleteConfirmText] = useState("")
-  const [isEditingUsername, setIsEditingUsername] = useState(false)
-  const [username, setUsername] = useState(() => user?.name || user?.email || "Guest")
-  const [editedUsername, setEditedUsername] = useState(() => user?.name || user?.email || "Guest")
-
-  // Update username when user changes
-  useEffect(() => {
-    if (user) {
-      const displayName = user.name || user.email || "Guest"
-      setUsername(displayName)
-      setEditedUsername(displayName)
-    }
-  }, [user])
+  const username = user?.name || user?.email || "Guest"
 
   // Initialize theme and language from user preferences or localStorage
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
@@ -216,40 +203,6 @@ export function DashboardPage() {
     navigate("/login")
   }
 
-  const handleDeleteAccount = () => {
-    setShowDeleteModal(true)
-  }
-
-  const handleDeleteConfirm = () => {
-    if (deleteConfirmText === "DELETE") {
-      console.log("Account deleted")
-      // Add delete account logic here
-      setShowDeleteModal(false)
-      setDeleteConfirmText("")
-    }
-  }
-
-  const handleDeleteCancel = () => {
-    setShowDeleteModal(false)
-    setDeleteConfirmText("")
-  }
-
-  const handleEditUsername = () => {
-    setIsEditingUsername(true)
-    setEditedUsername(username)
-  }
-
-  const handleSaveUsername = () => {
-    if (editedUsername.trim()) {
-      setUsername(editedUsername.trim())
-    }
-    setIsEditingUsername(false)
-  }
-
-  const handleCancelEditUsername = () => {
-    setEditedUsername(username)
-    setIsEditingUsername(false)
-  }
 
   // Handle language change
   const handleLanguageChange = async (lang: string) => {
@@ -639,73 +592,6 @@ export function DashboardPage() {
               <div className="mx-auto flex max-w-7xl flex-col gap-8 px-8 py-10">
                 {activeTab === "dashboard" && (
                   <>
-                    {/* User Card */}
-                    <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className={`w-16 h-16 rounded-full ${getCardSurface()} flex items-center justify-center border ${getBorderColor()} flex-shrink-0`}>
-                            <User className={`w-8 h-8 ${getTextColor()}`} />
-                          </div>
-                          <div className="flex-1">
-                            {isEditingUsername ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={editedUsername}
-                                  onChange={(e) => setEditedUsername(e.target.value)}
-                                  className={`flex-1 px-3 py-1 rounded-md ${getCardSurface()} border ${getBorderColor()} ${getTextColor()} text-xl font-semibold focus:outline-none focus:border-[#61AFEF]`}
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      handleSaveUsername()
-                                    } else if (e.key === "Escape") {
-                                      handleCancelEditUsername()
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={handleSaveUsername}
-                                  className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label={t("dashboard.save")}
-                                >
-                                  <Check className="w-5 h-5 text-[#8DB472]" />
-                                </button>
-                                <button
-                                  onClick={handleCancelEditUsername}
-                                  className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label={t("dashboard.cancel")}
-                                >
-                                  <X className={`w-5 h-5 ${getMutedText()}`} />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <h2 className={`text-xl font-semibold ${getTextColor()} whitespace-nowrap`}>{username}</h2>
-                                <button
-                                  onClick={handleEditUsername}
-                                  className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label={t("dashboard.edit")}
-                                >
-                                  <Pencil className={`w-4 h-4 ${getMutedText()}`} />
-                                </button>
-                              </div>
-                            )}
-                            <p className={`text-sm ${getMutedText()} whitespace-nowrap`}>{t("dashboard.userAccount")}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleDeleteAccount}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition border cursor-pointer whitespace-nowrap ${theme === "light"
-                            ? "bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                            : "bg-red-900/50 text-red-400 hover:bg-red-900/70 border-red-800/50"
-                            }`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>{t("dashboard.deleteAccount")}</span>
-                        </button>
-                      </div>
-                    </section>
-
                     {/* Statistics Section */}
                     <section className="grid grid-cols-2 xl:grid-cols-4 gap-6">
                       <div className={`rounded-2xl border-2 border-[#C678DD] ${getCardBg()} p-6 overflow-hidden`}>
@@ -966,60 +852,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={handleDeleteCancel}
-        >
-          <div
-            className={`${getCardSurface()} border ${getBorderColor()} rounded-lg shadow-lg p-6 max-w-md w-full mx-4`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className={`text-xl font-semibold ${getTextColor()} mb-4`}>{t("dashboard.deleteModal.title")}</h2>
-            <div className={`text-sm ${getMutedText()} mb-6 space-y-2`}>
-              <p>{t("dashboard.deleteModal.confirmMessage")}</p>
-              <p>
-                {currentLanguage === "en" ? (
-                  <>
-                    {t("dashboard.deleteModal.warningMessage").split("CANNOT be undone")[0]}
-                    <span className={`font-bold ${getTextColor()}`}>CANNOT be undone</span>
-                    {t("dashboard.deleteModal.warningMessage").split("CANNOT be undone")[1]}
-                  </>
-                ) : (
-                  t("dashboard.deleteModal.warningMessage")
-                )}
-              </p>
-              <p className="mt-4">{t("dashboard.deleteModal.confirmInstruction")}</p>
-            </div>
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder={t("dashboard.deleteModal.placeholder")}
-              className={`w-full px-4 py-2 rounded-md ${getCardBg()} border ${getBorderColor()} ${getTextColor()} mb-6 focus:outline-none focus:border-[#61AFEF]`}
-            />
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={handleDeleteCancel}
-                className={`px-4 py-2 rounded-md border ${getBorderColor()} ${getCardBg()} ${getTextColor()} text-sm font-medium transition ${getHoverBg()} cursor-pointer`}
-              >
-                {t("dashboard.deleteModal.cancel")}
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleteConfirmText !== "DELETE"}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${theme === "light"
-                  ? "bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                  : "bg-red-900/50 text-red-400 hover:bg-red-900/70 border-red-800/50"
-                  }`}
-              >
-                {t("dashboard.deleteModal.delete")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
