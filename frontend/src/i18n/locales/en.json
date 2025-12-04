@@ -194,7 +194,9 @@
       "expandModule": "Expand module",
       "collapseModule": "Collapse module",
       "version": "Version",
-      "versionNumber": "Version {{number}}"
+      "versionNumber": "Version {{number}}",
+      "empty": "Empty",
+      "loading": "Loading..."
     },
     "webDesign": {
       "modal": {

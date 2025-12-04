@@ -295,9 +295,11 @@ export function OutlinePage() {
             <>
               <div className={`flex flex-col border-r ${getBorderColor()}`} style={{ width: `${100 - chatWidth}%` }}>
                 <CourseOutline
+                  courseId={id}
                   onToggleChat={() => setIsChatHidden(!isChatHidden)}
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
+                  messagesCount={messages.length}
                 />
               </div>
 
@@ -343,9 +345,11 @@ export function OutlinePage() {
 
               <div className="flex flex-col flex-shrink-0" style={{ width: `${100 - chatWidth}%` }}>
                 <CourseOutline
+                  courseId={id}
                   onToggleChat={() => setIsChatHidden(!isChatHidden)}
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
+                  messagesCount={messages.length}
                 />
               </div>
             </>
@@ -356,9 +360,11 @@ export function OutlinePage() {
       {isChatHidden && (
         <div className="flex flex-col flex-1">
           <CourseOutline
+            courseId={id}
             onToggleChat={() => setIsChatHidden(!isChatHidden)}
             isChatHidden={isChatHidden}
             isSwapped={isSwapped}
+            messagesCount={messages.length}
           />
         </div>
       )}

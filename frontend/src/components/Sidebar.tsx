@@ -15,7 +15,7 @@ type StepState = "completed" | "current" | "upcoming"
 
 export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep = 2, onStepSelect, isCollapsed: externalIsCollapsed, onCollapseChange }, ref) => {
   const { t } = useTranslation()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(true)
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -342,7 +342,9 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
             <div className={`w-10 h-10 rounded-full ${getCardBg()} flex items-center justify-center border ${getBorderColor()} flex-shrink-0`}>
               <User className={`w-5 h-5 ${getTextColor()}`} />
             </div>
-            <span className={`text-sm ${getTextColor()} font-medium`}>{t("sidebar.guest")}</span>
+            <span className={`text-sm ${getTextColor()} font-medium`}>
+              {user?.name || user?.email || t("sidebar.guest")}
+            </span>
           </button>
         )}
 

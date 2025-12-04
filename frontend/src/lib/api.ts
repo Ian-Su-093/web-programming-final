@@ -237,3 +237,24 @@ export async function createMessage(courseId: string, content: string): Promise<
         body: JSON.stringify({ content } as CreateMessageRequest),
     })
 }
+
+// Markdown file types based on OpenAPI schema
+export interface CourseMarkdownFilesResponse {
+    status: string
+    markdown_name_list: string[]
+}
+
+export interface CourseMarkdownFileContentResponse {
+    status: string
+    content: string
+}
+
+// Get all markdown files in a course
+export async function getCourseMarkdownFiles(courseId: string): Promise<CourseMarkdownFilesResponse> {
+    return apiRequest<CourseMarkdownFilesResponse>(`/api/v1/course/${courseId}/files/markdown`)
+}
+
+// Get markdown file content in a course
+export async function getCourseMarkdownFileContent(courseId: string, path: string): Promise<CourseMarkdownFileContentResponse> {
+    return apiRequest<CourseMarkdownFileContentResponse>(`/api/v1/course/${courseId}/files/markdown/content?path=${encodeURIComponent(path)}`)
+}

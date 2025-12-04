@@ -194,7 +194,9 @@
       "expandModule": "展開模組",
       "collapseModule": "收合模組",
       "version": "版本",
-      "versionNumber": "第 {{number}} 版"
+      "versionNumber": "第 {{number}} 版",
+      "empty": "暫無大綱",
+      "loading": "載入中..."
     },
     "webDesign": {
       "modal": {
