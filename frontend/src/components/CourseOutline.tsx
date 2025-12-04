@@ -169,23 +169,39 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
           const files = response.markdown_name_list || []
           setMarkdownFiles(files)
 
-          // Keep current selection if it still exists, otherwise restore from storage or select first file
-          setSelectedMarkdownFile((prev) => {
-            const stored = getStoredSelectedFile()
-            const currentSelection = stored || prev
-            
-            if (files.length === 0) {
-              return null
-            }
-            
-            // If stored/current selection exists in the new list, keep it
-            if (currentSelection && files.includes(currentSelection)) {
-              return currentSelection
-            }
-            
+          // Determine which file should be selected
+          const stored = getStoredSelectedFile()
+          const currentSelection = stored || selectedMarkdownFile
+          let fileToSelect: string | null = null
+          
+          if (files.length === 0) {
+            fileToSelect = null
+          } else if (currentSelection && files.includes(currentSelection)) {
+            // Keep current selection if it still exists
+            fileToSelect = currentSelection
+          } else {
             // Otherwise, select first file
-            return files.length > 0 ? files[0] : null
-          })
+            fileToSelect = files[0]
+          }
+
+          // Update the selected file
+          setSelectedMarkdownFile(fileToSelect)
+
+          // Refresh the content of the selected markdown file
+          if (fileToSelect) {
+            try {
+              setIsLoadingMarkdown(true)
+              const contentResponse = await getCourseMarkdownFileContent(courseId, fileToSelect)
+              setMarkdownContent(contentResponse.content || "")
+            } catch (error) {
+              console.error("Failed to refresh markdown content:", error)
+              setMarkdownContent("")
+            } finally {
+              setIsLoadingMarkdown(false)
+            }
+          } else {
+            setMarkdownContent("")
+          }
         } catch (error) {
           console.error("Failed to refresh markdown files:", error)
         }
