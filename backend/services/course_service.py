@@ -8,7 +8,7 @@ import io
 from pypdf import PdfReader
 
 from config.settings import get_settings
-from models.course import CourseModel
+from models.course import CourseModel, Phase
 from models.message import MessageModel, Role
 from models.user import UserModel
 from repository.course_repository import CourseRepository
@@ -179,7 +179,7 @@ class CourseService:
                     response = await client.post(
                         f"{settings.agent_backend_url}/chat", 
                         json=payload, 
-                        timeout=60.0 
+                        timeout=300.0 
                     )
                     
                     if response.status_code != 200:
@@ -296,3 +296,16 @@ class CourseService:
             )
 
         return content
+
+    async def update_course_phase(self, course_id: str, user: UserModel, phase: Phase) -> CourseModel:
+        await self.get_course_by_id(course_id, user)
+        
+        updated_course = await self._repository.update_course_phase(course_id, phase)
+        
+        if not updated_course:
+             raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update course phase.",
+            )
+            
+        return updated_course

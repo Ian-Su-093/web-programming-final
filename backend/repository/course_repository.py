@@ -60,3 +60,25 @@ class CourseRepository:
             return None
 
         return await asyncio.to_thread(_sync_get_course_by_id)
+
+    async def update_course_phase(self, course_id: str, phase: Phase) -> CourseModel | None:
+        def _sync_update_course_phase() -> CourseModel | None:
+            doc_ref = self._client.collection(self._collection).document(course_id)
+            doc = doc_ref.get()
+            
+            if not doc.exists:
+                return None
+            
+            now = datetime.now(timezone.utc)
+            update_data = {
+                "phase": phase.value,
+                "updated_at": now
+            }
+            
+            doc_ref.update(update_data)
+            
+            # Fetch updated document
+            updated_doc = doc_ref.get()
+            return CourseModel(**updated_doc.to_dict())
+
+        return await asyncio.to_thread(_sync_update_course_phase)

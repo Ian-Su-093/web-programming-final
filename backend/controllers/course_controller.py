@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 
 from config.settings import Settings, get_settings
 from core.database import get_firestore_client
 from core.storage import get_storage_client
 from decorators.auth import required_login
+from models.course import Phase
 from models.requests.course import CreateMessageRequest
 from models.responses.course import (
     CourseResponse,
@@ -166,6 +167,39 @@ async def get_course_by_id(
         course=course, # type: ignore
         messages=messages
     )
+
+@router.put(
+    "/{course_id}/phase",
+    summary="Update course phase",
+    response_model=CourseResponse,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
+            "description": "Course not found",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": ErrorResponse,
+            "description": "User does not have permission to access this course",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "User not authenticated",
+        }
+    }
+)
+@required_login
+async def update_course_phase(
+    request: Request,
+    course_id: str,
+    phase: Phase = Query(..., description="New phase for the course (markdown or website)"),
+    service: CourseService = Depends(get_course_service),
+) -> CourseResponse:
+    
+    user_dict = request.session["user"]
+    user = UserModel(**user_dict)
+    
+    course = await service.update_course_phase(course_id, user, phase)
+    return CourseResponse(status="success", course=course)
 
 @router.get(
     "/{course_id}/message",

@@ -17,11 +17,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
     )
-    
-    # Trust headers from load balancers (e.g., Cloud Run)
-    # This ensures request.url_for() generates https links when running behind TLS termination
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
-    
+
     # CORS
     origins = [
         "http://localhost:5173",
@@ -45,8 +41,13 @@ def create_app() -> FastAPI:
         SessionMiddleware, 
         secret_key=settings.auth_secret_key,
         https_only=True,
-        same_site="none"
+        same_site="none",
+        session_cookie="__session",
     )
+
+    # Trust headers from load balancers (e.g., Cloud Run)
+    # This ensures request.url_for() generates https links when running behind TLS termination
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
     app.include_router(health_router, prefix=settings.api_prefix)
     app.include_router(user_router, prefix=settings.api_prefix)
