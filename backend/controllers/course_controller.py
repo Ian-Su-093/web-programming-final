@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 
 from config.settings import Settings, get_settings
 from core.database import get_firestore_client
@@ -257,13 +257,14 @@ async def create_message_by_user(
     request: Request,
     course_id: str,
     payload: CreateMessageRequest,
+    background_tasks: BackgroundTasks,
     service: CourseService = Depends(get_course_service),
 ) -> SingleMessageResponse:
     
     user_dict = request.session["user"]
     user = UserModel(**user_dict)
     
-    message = await service.create_message_by_user(course_id, user, payload.content)
+    message = await service.create_message_by_user(course_id, user, payload.content, background_tasks)
     
     return SingleMessageResponse(status="success", message=message)
 
