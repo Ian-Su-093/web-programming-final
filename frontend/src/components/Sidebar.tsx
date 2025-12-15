@@ -13,7 +13,7 @@ type SidebarProps = {
 
 type StepState = "completed" | "current" | "upcoming"
 
-export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep = 2, onStepSelect, isCollapsed: externalIsCollapsed, onCollapseChange }, ref) => {
+export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep = 2, onStepSelect: _onStepSelect, isCollapsed: externalIsCollapsed, onCollapseChange }, ref) => {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(true)
@@ -173,29 +173,6 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
     setShowUserMenu(false)
     await logout()
     navigate("/login")
-  }
-
-  const handleStepClick = (step: 1 | 2 | 3) => {
-    if (isStepDisabled(step)) return
-
-    if (onStepSelect) {
-      onStepSelect(step)
-      return
-    }
-
-    switch (step) {
-      case 1:
-        console.log("Upload files clicked")
-        break
-      case 2:
-        console.log("Modify course outline clicked")
-        break
-      case 3:
-        console.log("Modify website layout clicked")
-        break
-      default:
-        break
-    }
   }
 
   // Close user menu when clicking outside

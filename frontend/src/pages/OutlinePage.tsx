@@ -66,7 +66,7 @@ export function OutlinePage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const sendingRef = useRef(false) // Add this ref to track if a send is in progress
-  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollingStartTimeRef = useRef<number | null>(null)
   const lastMessageCountRef = useRef<number>(0)
 
