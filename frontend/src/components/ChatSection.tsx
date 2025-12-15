@@ -15,9 +15,10 @@ interface ChatSectionProps {
   courseTitle?: string
   onCourseTitleChange?: (title: string) => void
   isEditable?: boolean
+  onNextStep?: () => void
 }
 
-export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, onShowPreview, isSwapped = false, isPreviewHidden = false, courseTitle, onCourseTitleChange, isEditable = false }: ChatSectionProps) {
+export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, onShowPreview, isSwapped = false, isPreviewHidden = false, courseTitle, onCourseTitleChange, isEditable = false, onNextStep }: ChatSectionProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState("")
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -267,6 +268,15 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
           )}
         </div>
         <div className="flex items-center gap-2 ml-auto">
+          {onNextStep && (
+            <button
+              onClick={onNextStep}
+              className={`px-4 py-1.5 text-sm rounded-md bg-[#61AFEF] font-medium hover:bg-[#82C6FF] transition-colors cursor-pointer ${theme === "light" ? "text-white" : "text-[#1E2025]"
+                }`}
+            >
+              {t("upload.nextStep")}
+            </button>
+          )}
           {!isSwapped && isPreviewHidden && onShowPreview && (
             <button
               onClick={onShowPreview}

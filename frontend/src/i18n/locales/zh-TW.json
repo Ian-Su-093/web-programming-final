@@ -131,6 +131,7 @@
     "filesSelected": "（已選擇 {{count}}/{{maxFiles}} 個檔案）",
     "browseFiles": "瀏覽檔案",
     "remove": "移除",
+    "nextStep": "下一步",
     "creatingCourse": "正在建立課程...",
     "courseNameModal": {
       "title": "輸入課程名稱",

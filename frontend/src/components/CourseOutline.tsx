@@ -40,7 +40,7 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
   const [showVersionDropdown, setShowVersionDropdown] = useState(false)
   const versionDropdownRef = useRef<HTMLDivElement>(null)
   const previousMessagesCountRef = useRef<number>(0)
-  
+
   // Update localStorage whenever selectedMarkdownFile changes
   useEffect(() => {
     setStoredSelectedFile(selectedMarkdownFile)
@@ -132,16 +132,16 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
         setSelectedMarkdownFile((prev) => {
           const stored = getStoredSelectedFile()
           const currentSelection = stored || prev
-          
+
           if (files.length === 0) {
             return null
           }
-          
+
           // If stored/current selection exists in the new list, keep it
           if (currentSelection && files.includes(currentSelection)) {
             return currentSelection
           }
-          
+
           // Otherwise, select first file
           return files.length > 0 ? files[0] : null
         })
@@ -160,7 +160,7 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
     if (messagesCount !== undefined && messagesCount > previousMessagesCountRef.current) {
       // Messages count increased, refresh markdown files
       previousMessagesCountRef.current = messagesCount
-      
+
       const refreshMarkdownFiles = async () => {
         if (!courseId) return
 
@@ -173,7 +173,7 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
           const stored = getStoredSelectedFile()
           const currentSelection = stored || selectedMarkdownFile
           let fileToSelect: string | null = null
-          
+
           if (files.length === 0) {
             fileToSelect = null
           } else if (currentSelection && files.includes(currentSelection)) {
@@ -286,7 +286,7 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
               <div className="relative" ref={versionDropdownRef}>
                 <button
                   onClick={() => setShowVersionDropdown(!showVersionDropdown)}
-                  className={`flex items-center justify-between gap-2 px-3 py-2 rounded-md ${getCardSurface()} border ${getBorderColor()} ${getTextColor()} text-sm font-medium transition-colors ${getHoverBg()} min-w-[120px] max-w-[200px]`}
+                  className={`mt-[-2.606px] mb-[-2.606px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-md ${getCardSurface()} border ${getBorderColor()} ${getTextColor()} text-sm font-medium transition-colors ${getHoverBg()} min-w-[120px] max-w-[200px]`}
                 >
                   <span className="truncate">
                     {markdownFiles.length === 0
@@ -309,7 +309,7 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
                         onClick={() => {
                           setShowVersionDropdown(false)
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${getCardSurface()} ${getTextColor()} font-medium`}
+                        className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${getCardSurface()} ${getTextColor()} font-medium`}
                       >
                         {t("outline.courseOutline.empty") || "Empty"}
                       </button>
@@ -321,7 +321,7 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
                             setSelectedMarkdownFile(fileName)
                             setShowVersionDropdown(false)
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${index > 0 ? `border-t ${getBorderColor()}` : ""} ${selectedMarkdownFile === fileName
+                          className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${index > 0 ? `border-t ${getBorderColor()}` : ""} ${selectedMarkdownFile === fileName
                             ? `${getCardSurface()} ${getTextColor()} font-medium`
                             : `${getTextColor()} ${getHoverBg()}`
                             }`}
@@ -423,4 +423,5 @@ export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped 
     </div>
   )
 }
+
 

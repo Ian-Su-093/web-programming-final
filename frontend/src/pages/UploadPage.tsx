@@ -218,23 +218,26 @@ export function UploadPage() {
     }
   }
 
-  const handleStepSelect = (step: 1 | 2 | 3) => {
-    if (step === 1) {
-      // Prevent multiple clicks while creating course
-      if (isCreatingCourse) {
-        return
-      }
-
-      // Check if files are selected
-      if (selectedFiles.length > 0) {
-        // Show modal to get course name
-        setCourseName("")
-        setShowCourseNameModal(true)
-      } else {
-        // Show error message when trying to navigate without files
-        setError(t("upload.errors.noFilesSelected"))
-      }
+  const handleNextStep = () => {
+    // Prevent multiple clicks while creating course
+    if (isCreatingCourse) {
+      return
     }
+
+    // Check if files are selected (1-10 files)
+    if (selectedFiles.length === 0) {
+      setError(t("upload.errors.noFilesSelected"))
+      return
+    }
+
+    if (selectedFiles.length > MAX_FILES) {
+      setError(t("upload.errors.maxFilesReached", { maxFiles: MAX_FILES }))
+      return
+    }
+
+    // Show modal to get course name
+    setCourseName("")
+    setShowCourseNameModal(true)
   }
 
   const handleCreateCourse = async () => {
@@ -286,7 +289,6 @@ export function UploadPage() {
       <Sidebar
         ref={sidebarRef}
         currentStep={1}
-        onStepSelect={handleStepSelect}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
       />
@@ -363,6 +365,18 @@ export function UploadPage() {
               ))}
             </div>
           )}
+
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={handleNextStep}
+              disabled={isCreatingCourse || selectedFiles.length === 0 || selectedFiles.length > MAX_FILES}
+              className={`px-4 py-1.5 text-sm rounded-md bg-[#61AFEF] font-medium hover:bg-[#82C6FF] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${theme === "light" ? "text-white" : "text-[#1E2025]"
+                }`}
+            >
+              {t("upload.nextStep")}
+            </button>
+          </div>
 
           {isCreatingCourse && (
             <div className={`mt-6 rounded-xl border ${theme === "light"

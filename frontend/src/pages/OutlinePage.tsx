@@ -176,12 +176,10 @@ export function OutlinePage() {
     return "bg-[#3E4451]"
   }
 
-  const handleStepSelect = (step: 1 | 2 | 3) => {
-    // Only allow proceeding to the next phase
-    if (step === 2) {
-      id && navigate(`/${id}/web-design`)
+  const handleNextStep = () => {
+    if (id) {
+      navigate(`/${id}/web-design`)
     }
-    // Step 2 is current, clicking it navigates to web-design
   }
 
   const handleSendMessage = async (content: string) => {
@@ -284,7 +282,6 @@ export function OutlinePage() {
       <Sidebar
         ref={sidebarRef}
         currentStep={2}
-        onStepSelect={handleStepSelect}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
       />
@@ -319,6 +316,7 @@ export function OutlinePage() {
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
+                  onNextStep={handleNextStep}
                 />
               </div>
             </>
@@ -332,6 +330,7 @@ export function OutlinePage() {
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
+                  onNextStep={handleNextStep}
                 />
               </div>
 

@@ -131,6 +131,7 @@
     "filesSelected": "({{count}}/{{maxFiles}} files selected)",
     "browseFiles": "Browse files",
     "remove": "Remove",
+    "nextStep": "Next Step",
     "creatingCourse": "Creating course...",
     "courseNameModal": {
       "title": "Enter Course Name",
