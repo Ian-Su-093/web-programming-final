@@ -54,6 +54,7 @@ export function OutlinePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [courseData, setCourseData] = useState<CourseData>(mockCourseData)
   const [isLoading, setIsLoading] = useState(false)
+  const [isPolling, setIsPolling] = useState(false)
   const [chatWidth, setChatWidth] = useState(66.67)
   const [isResizing, setIsResizing] = useState(false)
   const [isChatHidden, setIsChatHidden] = useState(false)
@@ -65,6 +66,9 @@ export function OutlinePage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const sendingRef = useRef(false) // Add this ref to track if a send is in progress
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingStartTimeRef = useRef<number | null>(null)
+  const lastMessageCountRef = useRef<number>(0)
 
   // Fetch course data and messages on mount
   useEffect(() => {
@@ -101,6 +105,7 @@ export function OutlinePage() {
           .filter((msg): msg is Message => msg !== null)
 
         setMessages(convertedMessages)
+        lastMessageCountRef.current = convertedMessages.length
       } catch (error) {
         console.error("Failed to fetch messages:", error)
         // Keep empty messages on error
@@ -109,6 +114,16 @@ export function OutlinePage() {
 
     fetchCourseData()
     fetchMessages()
+
+    // Cleanup polling on unmount or id change
+    return () => {
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current)
+        pollingTimeoutRef.current = null
+      }
+      setIsPolling(false)
+      pollingStartTimeRef.current = null
+    }
   }, [id])
 
   // Theme state
@@ -182,16 +197,96 @@ export function OutlinePage() {
     }
   }
 
+  // Stop polling function
+  const stopPolling = () => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current)
+      pollingTimeoutRef.current = null
+    }
+    setIsPolling(false)
+    pollingStartTimeRef.current = null
+  }
+
+  // Polling function to check for new assistant messages
+  const pollForMessages = async () => {
+    if (!id) {
+      stopPolling()
+      return
+    }
+
+    try {
+      const response = await getMessagesByCourseId(id)
+      const convertedMessages = response.messages
+        .map(convertMessageModelToMessage)
+        .filter((msg): msg is Message => msg !== null)
+
+      // Check if we have new assistant messages (not tool messages)
+      const currentMessageCount = convertedMessages.length
+      const hasNewAssistantMessage = convertedMessages.some(
+        (msg, idx) =>
+          idx >= lastMessageCountRef.current &&
+          msg.role === "assistant" &&
+          msg.content !== "__TOOL_PROCESSING__"
+      )
+
+      // Update messages
+      setMessages(convertedMessages)
+      lastMessageCountRef.current = currentMessageCount
+
+      // If we found a new assistant message, stop polling
+      if (hasNewAssistantMessage) {
+        stopPolling()
+        setIsLoading(false)
+        return
+      }
+
+      // Check if we've exceeded maximum polling duration (5 minutes)
+      const now = Date.now()
+      const startTime = pollingStartTimeRef.current
+      if (startTime && now - startTime > 5 * 60 * 1000) {
+        // Maximum duration reached
+        stopPolling()
+        setIsLoading(false)
+        console.warn("Polling timeout: No assistant response received within 5 minutes")
+        return
+      }
+
+      // Calculate next poll interval
+      // First 30 seconds: poll every 10-15 seconds
+      // After 30 seconds: poll every 2-3 seconds
+      const elapsed = startTime ? now - startTime : 0
+      const pollInterval = elapsed < 30000 ? 12000 : 2500 // 12s initially, 2.5s after 30s
+
+      // Schedule next poll
+      pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+    } catch (error) {
+      console.error("Failed to poll for messages:", error)
+      // Continue polling even on error (might be temporary network issue)
+      const startTime = pollingStartTimeRef.current
+      if (startTime) {
+        const elapsed = Date.now() - startTime
+        const pollInterval = elapsed < 30000 ? 12000 : 2500
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+      } else {
+        stopPolling()
+        setIsLoading(false)
+      }
+    }
+  }
+
   const handleSendMessage = async (content: string) => {
     if (!id) {
       console.error("Course ID is missing")
       return
     }
 
-    // Prevent duplicate sends
-    if (sendingRef.current || isLoading) {
+    // Prevent duplicate sends (while sending or polling)
+    if (sendingRef.current || isLoading || isPolling) {
       return
     }
+
+    // Stop any existing polling
+    stopPolling()
 
     // Create optimistic message
     const optimisticMessage: Message = {
@@ -207,25 +302,36 @@ export function OutlinePage() {
     setIsLoading(true)
 
     try {
-      // Send the message to the backend
-      await createMessage(id, content)
+      // Send the message to the backend (returns immediately)
+      const response = await createMessage(id, content)
 
-      // Refetch all messages to get the updated conversation (including any assistant responses)
-      // This will replace the optimistic message with the real one from the server
-      const response = await getMessagesByCourseId(id)
-      const convertedMessages = response.messages
-        .map(convertMessageModelToMessage)
-        .filter((msg): msg is Message => msg !== null)
+      // Replace optimistic message with real one from server
+      const realUserMessage = convertMessageModelToMessage(response.message)
+      setMessages((prev) => {
+        if (realUserMessage) {
+          const filtered = prev.filter((msg) => msg.id !== optimisticMessage.id)
+          const updated = [...filtered, realUserMessage]
+          lastMessageCountRef.current = updated.length
+          return updated
+        } else {
+          // If conversion failed, keep optimistic message for now
+          lastMessageCountRef.current = prev.length
+          return prev
+        }
+      })
 
-      setMessages(convertedMessages)
+      // Start polling for assistant response
+      setIsPolling(true)
+      pollingStartTimeRef.current = Date.now()
+      pollingTimeoutRef.current = setTimeout(pollForMessages, 12000) // First poll after 12 seconds
     } catch (error) {
       console.error("Failed to send message:", error)
       // Remove the optimistic message on error
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
-      // Optionally show an error message to the user
-      // For now, we'll just log it
-    } finally {
       setIsLoading(false)
+      sendingRef.current = false
+    } finally {
+      // Note: We don't set isLoading to false here - it will be set to false when polling stops
       sendingRef.current = false
     }
   }
@@ -312,7 +418,7 @@ export function OutlinePage() {
                 <ChatSection
                   messages={messages}
                   onSendMessage={handleSendMessage}
-                  isLoading={isLoading}
+                  isLoading={isLoading || isPolling}
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
@@ -326,7 +432,7 @@ export function OutlinePage() {
                 <ChatSection
                   messages={messages}
                   onSendMessage={handleSendMessage}
-                  isLoading={isLoading}
+                  isLoading={isLoading || isPolling}
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}

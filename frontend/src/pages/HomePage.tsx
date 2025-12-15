@@ -234,11 +234,15 @@ export function HomePage() {
                     }`}
                 >
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent)]" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className={`flex h-32 w-32 items-center justify-center rounded-full border ${colorScheme.border} bg-gradient-to-br ${colorScheme.gradient} text-sm uppercase tracking-[0.2em] text-white/80 shadow-lg`}>
-                      Image
-                    </div>
-                  </div>
+                  {index === 0 ? (
+                    <img src="/dashboard-sketch.png" alt="Create" className="h-full w-full object-cover" />
+                  ) : index === 1 ? (
+                    <img src="/upload-sketch.png" alt="Upload" className="h-full w-full object-cover" />
+                  ) : index === 2 ? (
+                    <img src="/outline-sketch.png" alt="Plan" className="h-full w-full object-cover" />
+                  ) : index === 3 ? (
+                    <img src="/web-design-sketch.png" alt="Design" className="h-full w-full object-cover" />
+                  ) : null}
                 </div>
               </div>
             )
