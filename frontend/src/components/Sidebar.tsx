@@ -133,9 +133,8 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
   const step3State = getStepState(3)
 
   const isStepDisabled = (step: 1 | 2 | 3) => {
-    // Disable future steps (step > currentStep) and previous steps (step < currentStep)
-    // Users can only proceed forward, not go back
-    return step !== currentStep
+    // Only dim future steps (step > currentStep), not past steps
+    return step > currentStep
   }
 
   const toggleSidebar = () => {
@@ -241,85 +240,45 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ currentStep =
       {!isCollapsed && (
         <div className="flex-1 flex flex-col items-start justify-center py-8 gap-4 px-4">
           {/* Step 1 - Completed */}
-          <button
-            onClick={() => handleStepClick(1)}
-            className={`w-full flex items-center gap-3 ${getHoverBg()} rounded-md p-2 transition-colors cursor-pointer`}
-            aria-label={t("sidebar.steps.uploadFiles")}
-          >
+          <div className="w-full flex items-center gap-3 rounded-md p-2">
             {getIcon(step1State)}
             <span className={getStepTextClasses(step1State)}>{t("sidebar.steps.uploadFiles")}</span>
-          </button>
+          </div>
 
           {/* Connector Line */}
           <div className={`w-px h-8 ml-[1.5rem] ${getConnectorColor(step1State === "completed")}`} />
 
           {/* Step 2 - Current */}
-          <button
-            onClick={() => handleStepClick(2)}
-            disabled={isStepDisabled(2)}
-            className={`w-full flex items-center gap-3 rounded-md p-2 transition-colors ${isStepDisabled(2)
-              ? "cursor-not-allowed opacity-50"
-              : `${getHoverBg()} cursor-pointer`
-              }`}
-            aria-label={t("sidebar.steps.modifyCourseOutline")}
-          >
+          <div className={`w-full flex items-center gap-3 rounded-md p-2 ${isStepDisabled(2) ? "opacity-50" : ""}`}>
             {getIcon(step2State)}
             <span className={getStepTextClasses(step2State)}>{t("sidebar.steps.modifyCourseOutline")}</span>
-          </button>
+          </div>
 
           {/* Connector Line */}
           <div className={`w-px h-8 ml-[1.5rem] ${getConnectorColor(step2State === "completed")}`} />
 
           {/* Step 3 - Upcoming */}
-          <button
-            onClick={() => handleStepClick(3)}
-            disabled={isStepDisabled(3)}
-            className={`w-full flex items-center gap-3 rounded-md p-2 transition-colors ${isStepDisabled(3)
-              ? "cursor-not-allowed opacity-50"
-              : `${getHoverBg()} cursor-pointer`
-              }`}
-            aria-label={t("sidebar.steps.modifyWebsiteLayout")}
-          >
+          <div className={`w-full flex items-center gap-3 rounded-md p-2 ${isStepDisabled(3) ? "opacity-50" : ""}`}>
             {getIcon(step3State)}
             <span className={getStepTextClasses(step3State)}>{t("sidebar.steps.modifyWebsiteLayout")}</span>
-          </button>
+          </div>
         </div>
       )}
 
       {/* Collapsed Steps Indicator */}
       {isCollapsed && (
         <div className="flex-1 flex flex-col items-center justify-center py-8 gap-4">
-          <button
-            onClick={() => handleStepClick(1)}
-            className={`${getHoverBg()} rounded-md p-1 transition-colors cursor-pointer`}
-            aria-label={t("sidebar.steps.uploadFiles")}
-          >
+          <div className="rounded-md p-1">
             {getCollapsedIcon(step1State)}
-          </button>
+          </div>
           <div className={`w-px h-6 ${getConnectorColor(step1State === "completed")}`} />
-          <button
-            onClick={() => handleStepClick(2)}
-            disabled={isStepDisabled(2)}
-            className={`rounded-md p-1 transition-colors ${isStepDisabled(2)
-              ? "cursor-not-allowed opacity-50"
-              : `${getHoverBg()} cursor-pointer`
-              }`}
-            aria-label={t("sidebar.steps.modifyCourseOutline")}
-          >
+          <div className={`rounded-md p-1 ${isStepDisabled(2) ? "opacity-50" : ""}`}>
             {getCollapsedIcon(step2State)}
-          </button>
+          </div>
           <div className={`w-px h-6 ${getConnectorColor(step2State === "completed")}`} />
-          <button
-            onClick={() => handleStepClick(3)}
-            disabled={isStepDisabled(3)}
-            className={`rounded-md p-1 transition-colors ${isStepDisabled(3)
-              ? "cursor-not-allowed opacity-50"
-              : `${getHoverBg()} cursor-pointer`
-              }`}
-            aria-label={t("sidebar.steps.modifyWebsiteLayout")}
-          >
+          <div className={`rounded-md p-1 ${isStepDisabled(3) ? "opacity-50" : ""}`}>
             {getCollapsedIcon(step3State)}
-          </button>
+          </div>
         </div>
       )}
 
