@@ -1,6 +1,6 @@
 # Web Programming Final Project
 
-This project is a web application built with a React frontend and a FastAPI backend, deployed using Docker and Google Cloud Run.
+This project is a web application built with a React frontend and a FastAPI backend, deployed using Docker and Google Cloud Run. The project aims to help educators create comprehensive course outlines and design course websites by uploading course materials and using AI-powered chat interfaces to generate structured content and interactive web designs.
 
 ## Deploy Link
 
@@ -67,7 +67,7 @@ docker run -p 8080:8080 --env-file .env -v /path/to/your/firebase-credentials.js
 cd frontend
 npm install
 npm run dev
-# App runs at http://localhost:5173
+# App runs at https://localhost:5173
 ```
 
 ## Production Deployment
@@ -86,3 +86,11 @@ The `deploy.sh` script handles the full production deployment process:
 ```
 
 *Note: You must have `gcloud` and `firebase` CLI tools installed and authenticated before running the deploy script.*
+
+## Data Limit
+
+**Warning:** This project uses AI models with free tier quota limitations. If you receive a 503 error message or the agent does not respond for an extended period, it indicates that the quota limit has been reached. Please try again the next day.
+
+## Reflection
+
+This project provided valuable experience in building a full-stack application with modern technologies, integrating AI capabilities, and deploying to cloud infrastructure. Working with React, TypeScript, FastAPI, and various cloud services helped deepen understanding of both frontend and backend development, as well as the complexities of production deployment. The integration of AI-powered features for course generation and web design showcased the potential of combining traditional web development with modern AI tools to create practical, user-focused applications.
