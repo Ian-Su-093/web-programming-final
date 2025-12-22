@@ -79,6 +79,12 @@ async def login(
         )
     
     redirect_uri = request.url_for("auth_callback", provider=provider)
+
+    settings = get_settings()
+    if "web.app" in settings.frontend_url: 
+        # Manually construct the correct callback URL matching the frontend
+        redirect_uri = f"{settings.frontend_url}{settings.api_prefix}/user/callback/{provider}"
+
     return await client.authorize_redirect(request, redirect_uri)
 
 

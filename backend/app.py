@@ -22,7 +22,8 @@ def create_app() -> FastAPI:
     origins = [
         "http://localhost:5173",
         settings.frontend_url,
-        "https://localhost:5173"
+        "https://localhost:5173",
+        "https://wp1141-finals.web.app"
     ]
 
     app.add_middleware(
