@@ -100,8 +100,7 @@ export function LoginPage() {
 
   const handleGoogleLogin = () => {
     // Redirect to backend OAuth login endpoint
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://backend-service-1076130420823.asia-east1.run.app'
-    window.location.href = `${apiUrl}/api/v1/user/login/google`
+    const apiUrl = import.meta.env.VITE_API_URL
   }
 
   return (

@@ -1,5 +1,5 @@
 // API client for backend service
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-service-1076130420823.asia-east1.run.app'
+const API_URL = import.meta.env.VITE_API_URL
 
 // Types based on OpenAPI schema
 export interface UserPreference {

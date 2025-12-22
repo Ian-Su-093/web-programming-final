@@ -137,7 +137,7 @@
       "title": "Uploading Course Materials",
       "description": "Upload your course materials to help our AI understand your content and generate a comprehensive outline:",
       "tip1": "Only PDF files are currently supported",
-      "tip2": "You can upload up to 10 PDF files per course",
+      "tip2": "You can upload up to 10 PDF files per course, and the total size of all files cannot exceed 32MB",
       "tip3": "Drag and drop files directly onto the upload area, or click 'Browse files' to select from your computer",
       "tip4": "Make sure your PDFs contain clear, readable text for best results"
     },
