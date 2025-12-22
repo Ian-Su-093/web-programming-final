@@ -172,19 +172,6 @@ export function DashboardPage() {
     }).format(date)
   }
 
-  const generateUniqueProjectId = (existingProjects: Project[]): string => {
-    let newId: string
-    let attempts = 0
-    const maxAttempts = 100
-
-    do {
-      newId = `project-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-      attempts++
-    } while (existingProjects.some((p) => p.id === newId) && attempts < maxAttempts)
-
-    return newId
-  }
-
   const handleCreateNewCourse = () => {
     // Navigate to upload page (course ID will be generated after upload)
     navigate(`/upload`)
@@ -468,18 +455,6 @@ export function DashboardPage() {
   }
 
   // Help center helper functions
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(sectionId)) {
-        next.delete(sectionId)
-      } else {
-        next.add(sectionId)
-      }
-      return next
-    })
-  }
-
   const scrollToSection = (sectionId: string) => {
     // Expand section if collapsed first
     const needsExpansion = !expandedSections.has(sectionId)
