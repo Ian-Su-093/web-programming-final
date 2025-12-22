@@ -8,25 +8,54 @@ import { WebDesignPage } from "@/pages/WebDesignPage"
 import { FullPageWebPreviewPage } from "@/pages/FullPageWebPreviewPage"
 import { TermsOfServicePage } from "@/pages/TermsOfServicePage"
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage"
+import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage"
+import { CourseUploadRedirectPage } from "@/pages/CourseUploadRedirectPage"
+import { AuthProvider } from "@/contexts/AuthContext"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-        <Route path="/user/dashboard" element={<DashboardPage />} />
-        <Route path="/user/preferences" element={<DashboardPage />} />
-        <Route path="/user/help-center" element={<DashboardPage />} />
-        <Route path="/dashboard" element={<Navigate to="/user/dashboard" replace />} />
-        <Route path="/:id/upload" element={<UploadPage />} />
-        <Route path="/:id/outline" element={<OutlinePage />} />
-        <Route path="/:id/web-design" element={<WebDesignPage />} />
-        <Route path="/:id/web-preview" element={<FullPageWebPreviewPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/oauth/callback/google" element={<OAuthCallbackPage />} />
+          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route
+            path="/user/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user/preferences"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user/help-center"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/dashboard" element={<Navigate to="/user/dashboard" replace />} />
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/:id/upload" element={<CourseUploadRedirectPage />} />
+          <Route path="/:id/outline" element={<OutlinePage />} />
+          <Route path="/:id/web-design" element={<WebDesignPage />} />
+          <Route path="/:id/web-preview" element={<FullPageWebPreviewPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

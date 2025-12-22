@@ -1,59 +1,207 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
-import { useTranslation } from "react-i18next"
+import { useParams, useNavigate } from "react-router-dom"
 import type { MouseEvent as ReactMouseEvent } from "react"
 import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
 import { WebPreview } from "@/components/WebPreview"
 import { Sidebar } from "@/components/Sidebar"
-import { Modal } from "@/components/ui/modal"
 import type { Message } from "@/types"
-
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "I want to build a course that teaches developers how to co-create outlines with AI.",
-    timestamp: new Date("2024-04-12T09:27:00"),
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content: "Great! Tell me about your target learners and how you envision supporting them after each module.",
-    timestamp: new Date("2024-04-12T09:27:00"),
-  },
-  {
-    id: "3",
-    role: "user",
-    content: "They already know React. I need structure that shows how to pair UI craft with AI prompts.",
-    timestamp: new Date("2024-04-12T09:29:00"),
-  },
-  {
-    id: "4",
-    role: "assistant",
-    content: "Understood. I drafted an outline that escalates from foundational UX to advanced AI orchestration. Feel free to iterate further below.",
-    timestamp: new Date("2024-04-12T09:30:00"),
-  },
-]
+import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage } from "@/lib/api"
 
 export function WebDesignPage() {
-  const { t } = useTranslation()
-  const [messages, setMessages] = useState<Message[]>(mockMessages)
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [courseTitle, setCourseTitle] = useState<string>("")
   const [chatWidth, setChatWidth] = useState(66.67)
   const [isResizing, setIsResizing] = useState(false)
   const [isChatHidden, setIsChatHidden] = useState(false)
   const [isPreviewHidden, setIsPreviewHidden] = useState(false)
   const [isSwapped, setIsSwapped] = useState(false)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [stepToNavigate, setStepToNavigate] = useState<1 | 2 | null>(null)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [isPolling, setIsPolling] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
-  const navigate = useNavigate()
+  const sendingRef = useRef(false)
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingStartTimeRef = useRef<number | null>(null)
+  const firstAssistantMessageTimeRef = useRef<number | null>(null)
+  const lastMessageCountRef = useRef(0)
   const { id } = useParams<{ id: string }>()
-  
+  const navigate = useNavigate()
+
+  // Stop polling function
+  const stopPolling = () => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current)
+      pollingTimeoutRef.current = null
+    }
+    setIsPolling(false)
+    pollingStartTimeRef.current = null
+    firstAssistantMessageTimeRef.current = null
+  }
+
+  // Polling function to check for new assistant messages
+  const pollForMessages = async () => {
+    if (!id) {
+      stopPolling()
+      return
+    }
+
+    try {
+      const response = await getMessagesByCourseId(id)
+      const convertedMessages = response.messages
+        .map(convertMessageModelToMessage)
+        .filter((msg): msg is Message => msg !== null)
+
+      // Check if we have new assistant messages (not tool messages)
+      const currentMessageCount = convertedMessages.length
+      const hasNewAssistantMessage = convertedMessages.some(
+        (msg, idx) =>
+          idx >= lastMessageCountRef.current &&
+          msg.role === "assistant" &&
+          msg.content !== "__TOOL_PROCESSING__"
+      )
+
+      // Update messages
+      setMessages(convertedMessages)
+      lastMessageCountRef.current = currentMessageCount
+
+      const now = Date.now()
+      const startTime = pollingStartTimeRef.current
+
+      // If we found a new assistant message, record the time (but continue polling)
+      if (hasNewAssistantMessage && !firstAssistantMessageTimeRef.current) {
+        firstAssistantMessageTimeRef.current = now
+        // Trigger refresh of embed website code
+        setRefreshKey((prev) => prev + 1)
+      }
+
+      // Check if we should stop polling:
+      // 1. If we've detected an assistant message and 6 seconds have passed since detection
+      // 2. If we've exceeded maximum polling duration (5 minutes) without any assistant message
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+      if (firstAssistantTime) {
+        // We've detected an assistant message - continue for 6 more seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+          return
+        }
+      } else if (startTime && now - startTime > 5 * 60 * 1000) {
+        // Maximum duration reached without any assistant message
+        stopPolling()
+        setIsLoading(false)
+        console.warn("Polling timeout: No assistant response received within 5 minutes")
+        return
+      }
+
+      // Calculate next poll interval
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const pollInterval = 2000 // 2 seconds
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      } else {
+        // Before assistant message: First 30 seconds: poll every 12 seconds, then every 2.5 seconds
+        const elapsed = startTime ? now - startTime : 0
+        const pollInterval = elapsed < 30000 ? 12000 : 2500 // 12s initially, 2.5s after 30s
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      }
+    } catch (error) {
+      console.error("Failed to poll for messages:", error)
+      // Continue polling even on error (might be temporary network issue)
+      const now = Date.now()
+      const startTime = pollingStartTimeRef.current
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          pollingTimeoutRef.current = setTimeout(pollForMessages, 2000)
+        }
+      } else if (startTime) {
+        // Before assistant message: use adaptive intervals
+        const elapsed = now - startTime
+        if (elapsed > 5 * 60 * 1000) {
+          // Maximum duration reached
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          const pollInterval = elapsed < 30000 ? 12000 : 2500
+          pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        }
+      } else {
+        stopPolling()
+        setIsLoading(false)
+      }
+    }
+  }
+
+  // Fetch course data and messages on mount
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getCourseById(id)
+        setCourseTitle(response.course.name)
+
+        // Check if course phase is 'markdown' - redirect to outline page if so
+        if (response.course.phase === 'markdown') {
+          navigate(`/${id}/outline`, { replace: true })
+          return
+        }
+      } catch (error) {
+        console.error("Failed to fetch course data:", error)
+      }
+    }
+
+    const fetchMessages = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getMessagesByCourseId(id)
+        console.log("Received chat history (raw):", response)
+        console.log("Raw messages array:", response.messages)
+
+        // Convert MessageModel[] to Message[]
+        // Filter out null values (messages with null content)
+        const convertedMessages = response.messages
+          .map(convertMessageModelToMessage)
+          .filter((msg): msg is Message => msg !== null)
+
+        console.log("Converted chat history:", convertedMessages)
+        setMessages(convertedMessages)
+        lastMessageCountRef.current = convertedMessages.length
+      } catch (error) {
+        console.error("Failed to fetch messages:", error)
+        // Keep empty messages on error
+      }
+    }
+
+    fetchCourseData()
+    fetchMessages()
+
+    // Cleanup polling on unmount
+    return () => {
+      stopPolling()
+    }
+  }, [id])
+
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -63,7 +211,7 @@ export function WebDesignPage() {
   // Apply theme on mount and when theme changes
   useEffect(() => {
     document.documentElement.classList.remove("dark", "theme-light")
-    
+
     if (theme === "system") {
       const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
       document.documentElement.classList.toggle("dark", systemPrefersDark)
@@ -119,64 +267,71 @@ export function WebDesignPage() {
     return "bg-[#3E4451]"
   }
 
-  const handleStepSelect = (step: 1 | 2 | 3) => {
-    if (step === 1) {
-      setStepToNavigate(1)
-      setShowConfirmModal(true)
-    } else if (step === 2) {
-      setStepToNavigate(2)
-      setShowConfirmModal(true)
-    }
-    // Step 3 is current, no action needed
-  }
-
-  const handleConfirm = () => {
-    setShowConfirmModal(false)
-    if (stepToNavigate === 1) {
-      id && navigate(`/${id}/upload`)
-    } else if (stepToNavigate === 2) {
-      id && navigate(`/${id}/outline`)
-    }
-    setStepToNavigate(null)
-  }
-
-  const handleCancel = () => {
-    setShowConfirmModal(false)
-    setStepToNavigate(null)
-  }
-
-  const getModalMessage = () => {
-    if (stepToNavigate === 1) {
-      return t("outline.webDesign.modal.uploadToOutline")
-    } else if (stepToNavigate === 2) {
-      return t("outline.webDesign.modal.outlineToLayout")
-    }
-    return t("outline.modal.message")
+  const handleStepSelect = (_step: 1 | 2 | 3) => {
+    // Step 3 is the last phase, no action needed
+    // Users can only proceed forward, not go back
   }
 
   const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    if (!id) {
+      console.error("Course ID is missing")
+      return
+    }
+
+    // Prevent duplicate sends (while sending or polling)
+    if (sendingRef.current || isLoading || isPolling) {
+      return
+    }
+
+    // Stop any existing polling
+    stopPolling()
+
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
       role: "user",
-      content,
+      content: content.trim(),
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    // Add optimistic message immediately
+    setMessages((prev) => [...prev, optimisticMessage])
+    sendingRef.current = true
     setIsLoading(true)
 
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          "I understand you'd like to plan a course. This is a demo response. In a real implementation, this would connect to an AI service to generate course outlines based on your input.",
-        timestamp: new Date(),
-      }
+    try {
+      // Send the message to the backend (returns immediately)
+      const response = await createMessage(id, content)
 
-      setMessages((prev) => [...prev, assistantMessage])
+      // Replace optimistic message with real one from server
+      const realUserMessage = convertMessageModelToMessage(response.message)
+      setMessages((prev) => {
+        if (realUserMessage) {
+          const filtered = prev.filter((msg) => msg.id !== optimisticMessage.id)
+          const updated = [...filtered, realUserMessage]
+          lastMessageCountRef.current = updated.length
+          return updated
+        } else {
+          // If conversion failed, keep optimistic message for now
+          lastMessageCountRef.current = prev.length
+          return prev
+        }
+      })
+
+      // Start polling for assistant response
+      setIsPolling(true)
+      pollingStartTimeRef.current = Date.now()
+      pollingTimeoutRef.current = setTimeout(pollForMessages, 12000) // First poll after 12 seconds
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      // Remove the optimistic message on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
       setIsLoading(false)
-    }, 1000)
+      sendingRef.current = false
+    } finally {
+      // Note: We don't set isLoading to false here - it will be set to false when polling stops
+      sendingRef.current = false
+    }
   }
 
   const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -228,21 +383,12 @@ export function WebDesignPage() {
 
   return (
     <div ref={containerRef} className={`flex h-screen ${getBgColor()} overflow-hidden`} onClick={handleMainContentClick}>
-      <Sidebar 
+      <Sidebar
         ref={sidebarRef}
-        currentStep={3} 
+        currentStep={3}
         onStepSelect={handleStepSelect}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
-      />
-      
-      <Modal
-        isOpen={showConfirmModal}
-        onClose={handleCancel}
-        onConfirm={handleConfirm}
-        message={getModalMessage()}
-        confirmText={t("outline.webDesign.modal.continue")}
-        cancelText={t("outline.webDesign.modal.cancel")}
       />
 
       {!isChatHidden && !isPreviewHidden && (
@@ -257,14 +403,14 @@ export function WebDesignPage() {
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
                   id={id}
+                  refreshKey={refreshKey}
                 />
               </div>
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>
@@ -278,6 +424,7 @@ export function WebDesignPage() {
                   onShowPreview={() => setIsPreviewHidden(false)}
                   isSwapped={isSwapped}
                   isPreviewHidden={isPreviewHidden}
+                  courseTitle={courseTitle}
                 />
               </div>
             </>
@@ -292,14 +439,14 @@ export function WebDesignPage() {
                   onShowPreview={() => setIsPreviewHidden(false)}
                   isSwapped={isSwapped}
                   isPreviewHidden={isPreviewHidden}
+                  courseTitle={courseTitle}
                 />
               </div>
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>
@@ -312,6 +459,7 @@ export function WebDesignPage() {
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
                   id={id}
+                  refreshKey={refreshKey}
                 />
               </div>
             </>
@@ -328,6 +476,7 @@ export function WebDesignPage() {
             isChatHidden={isChatHidden}
             isSwapped={isSwapped}
             id={id}
+            refreshKey={refreshKey}
           />
         </div>
       )}
@@ -342,6 +491,7 @@ export function WebDesignPage() {
             onShowPreview={() => setIsPreviewHidden(false)}
             isSwapped={isSwapped}
             isPreviewHidden={isPreviewHidden}
+            courseTitle={courseTitle}
           />
         </div>
       )}

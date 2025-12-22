@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { Send, Bot, ArrowLeftRight, Paperclip, PanelRightOpen, PanelLeftOpen, Pencil, Check, X } from "lucide-react"
+import { Send, Bot, ArrowLeftRight, PanelRightOpen, PanelLeftOpen, Pencil, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types"
 
@@ -15,9 +15,11 @@ interface ChatSectionProps {
   courseTitle?: string
   onCourseTitleChange?: (title: string) => void
   isEditable?: boolean
+  onNextStep?: () => void
+  canProceedToNextStep?: boolean
 }
 
-export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, onShowPreview, isSwapped = false, isPreviewHidden = false, courseTitle, onCourseTitleChange, isEditable = false }: ChatSectionProps) {
+export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, onShowPreview, isSwapped = false, isPreviewHidden = false, courseTitle, onCourseTitleChange, isEditable = false, onNextStep, canProceedToNextStep = true }: ChatSectionProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState("")
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -25,7 +27,8 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
-  
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -124,6 +127,21 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      if (input.trim() && !isLoading) {
+        onSendMessage(input.trim())
+        setInput("")
+        // Reset textarea height after sending
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto'
+        }
+      }
+    }
+    // Shift+Enter will naturally add a new line, so we don't need to handle it
+  }
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && file.type === "application/pdf") {
@@ -141,9 +159,6 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
     }
   }
 
-  const handlePaperclipClick = () => {
-    fileInputRef.current?.click()
-  }
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', {
@@ -254,6 +269,19 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
           )}
         </div>
         <div className="flex items-center gap-2 ml-auto">
+          {onNextStep && (
+            <button
+              onClick={canProceedToNextStep ? onNextStep : undefined}
+              disabled={!canProceedToNextStep}
+              className={`px-4 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                canProceedToNextStep
+                  ? `bg-[#61AFEF] hover:bg-[#82C6FF] cursor-pointer ${theme === "light" ? "text-white" : "text-[#1E2025]"}`
+                  : `bg-[#3E4451] opacity-50 cursor-not-allowed ${theme === "light" ? "text-gray-400" : "text-[#5C6370]"}`
+              }`}
+            >
+              {t("upload.nextStep")}
+            </button>
+          )}
           {!isSwapped && isPreviewHidden && onShowPreview && (
             <button
               onClick={onShowPreview}
@@ -277,7 +305,7 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
       </div>
 
       {/* Chat History */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-6">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center space-y-2">
@@ -289,39 +317,57 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
           </div>
         ) : (
           <>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex flex-col gap-2 ${message.role === "user" ? "items-end" : "items-start"
-                  }`}
-              >
-                <div className="max-w-[85%]">
-                  <div
-                    className={`rounded-lg px-4 py-3 border ${
-                      message.role === "user"
+            {messages.map((message, index) => {
+              const isToolMessage = message.content === '__TOOL_PROCESSING__'
+              const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
+              const nextIsTool = nextMessage?.content === '__TOOL_PROCESSING__'
+
+              // Render tool messages as a lighter text line, aligned to the left like assistant messages
+              // Tool messages always have mb-0 to reduce spacing
+              if (isToolMessage) {
+                return (
+                  <div key={message.id} className="flex flex-col gap-2 items-start py-1 mb-0">
+                    <p className={`text-xs italic ${theme === "light" ? "text-gray-500" : "text-[#5C6370]"}`}>
+                      {t("outline.chat.processing")}
+                    </p>
+                  </div>
+                )
+              }
+
+              // Render regular messages as before
+              // Remove margin-bottom if next message is a tool message
+              return (
+                <div
+                  key={message.id}
+                  className={`flex flex-col gap-2 ${message.role === "user" ? "items-end" : "items-start"} ${nextIsTool ? 'mb-0' : 'mb-6'}`}
+                >
+                  <div className="max-w-[85%]">
+                    <div
+                      className={`rounded-lg px-4 py-3 border ${message.role === "user"
                         ? theme === "light"
                           ? "bg-blue-100 text-gray-800 border-blue-200 shadow-[0_4px_8px_rgba(59,130,246,0.15)]"
                           : "bg-[#33365D] text-[#E0E0E0] border-[#444985] shadow-[0_4px_8px_rgba(139,92,246,0.15)]"
                         : theme === "light"
-                        ? "bg-gray-100 text-gray-800 border-gray-200"
-                        : "bg-[#1D2434] text-[#E0E0E0] border-[#252C3C]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"} uppercase`}>
-                        {message.role === "user" ? t("outline.chat.you") : t("outline.chat.assistant")}
-                      </span>
-                      <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"}`}>
-                        {formatTime(message.timestamp)}
-                      </span>
+                          ? "bg-gray-100 text-gray-800 border-gray-200"
+                          : "bg-[#1D2434] text-[#E0E0E0] border-[#252C3C]"
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"} uppercase`}>
+                          {message.role === "user" ? t("outline.chat.you") : t("outline.chat.assistant")}
+                        </span>
+                        <span className={`text-xs font-bold ${theme === "light" ? "text-gray-800" : "text-[#E0E0E0]"}`}>
+                          {formatTime(message.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
                     </div>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {isLoading && (
               <div className="flex flex-col gap-2 items-start">
                 <div className="max-w-[85%]">
@@ -360,21 +406,29 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
             id="pdf-upload"
           />
           <div className="relative w-[80%] flex items-center">
-            <button
-              type="button"
-              onClick={handlePaperclipClick}
-              className={`absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-2 ${theme === "light" ? "hover:bg-gray-200" : "hover:bg-[#3E4451]/50"} rounded-md transition-colors z-10 cursor-pointer`}
-              aria-label={t("outline.chat.uploadPdf")}
-            >
-              <Paperclip className={`w-5 h-5 ${getMutedText()}`} />
-            </button>
             <textarea
+              ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value)
+                // Auto-resize textarea, max 3 lines
+                const target = e.target as HTMLTextAreaElement
+                target.style.height = 'auto'
+                const lineHeight = 24 // Approximate line height in pixels
+                const padding = 32 // Top and bottom padding (2rem = 32px)
+                const maxHeight = lineHeight * 3 + padding
+                const newHeight = Math.min(target.scrollHeight, maxHeight)
+                target.style.height = `${newHeight}px`
+              }}
+              onKeyDown={handleKeyDown}
               placeholder={t("outline.chat.placeholder")}
               disabled={isLoading}
               rows={1}
-              className={`w-full rounded-xl border ${getInputBorder()} ${getInputBg()} pl-14 pr-5 py-4 text-sm ${getInputText()} ${getInputPlaceholder()} focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 resize-none`}
+              className={`w-full rounded-xl border ${getInputBorder()} ${getInputBg()} px-5 py-4 text-sm ${getInputText()} ${getInputPlaceholder()} focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 resize-none overflow-y-auto`}
+              style={{
+                minHeight: '2.5rem',
+                maxHeight: '6.5rem', // 3 lines max (approximately 24px * 3 + 32px padding)
+              }}
             />
           </div>
           <Button
@@ -390,4 +444,5 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
     </div>
   )
 }
+
 

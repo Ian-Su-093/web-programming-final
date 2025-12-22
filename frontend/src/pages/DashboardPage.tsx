@@ -1,55 +1,48 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Trash2, Pencil, Check, X, Sun, Moon, Monitor, Languages } from "lucide-react"
+import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Sun, Moon, Monitor, Languages, ChevronDown, ChevronLeft, BookOpen, Upload, FileText, Palette, MessageCircle, AlertCircle, Mail } from "lucide-react"
 import type { Project } from "@/types"
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n/config"
+import { useAuth } from "@/contexts/AuthContext"
+import { getAllCourses, type CourseModel } from "@/lib/api"
 
-// Mock projects data
-const mockProjects: Project[] = [
-  {
-    id: "project-1713175800000",
-    name: "AI-Powered Course Design with React & Next.js",
-    updatedAt: new Date("2024-04-15T10:30:00"),
-    currentStep: "3",
-  },
-  {
-    id: "project-1713088800000",
-    name: "Introduction to Web Development",
-    updatedAt: new Date("2024-04-14T15:20:00"),
-    currentStep: "2",
-  },
-  {
-    id: "project-1713002100000",
-    name: "Advanced TypeScript Patterns",
-    updatedAt: new Date("2024-04-13T09:15:00"),
-    currentStep: "1",
-  },
-  {
-    id: "project-1712916300000",
-    name: "Full-Stack JavaScript Mastery",
-    updatedAt: new Date("2024-04-12T14:45:00"),
-    currentStep: "2",
-  },
-  {
-    id: "project-1712830200000",
-    name: "Machine Learning Fundamentals",
-    updatedAt: new Date("2024-04-11T11:00:00"),
-    currentStep: "1",
-  },
-  {
-    id: "project-1712743800000",
-    name: "UI/UX Design Principles",
-    updatedAt: new Date("2024-04-10T16:30:00"),
-    currentStep: "3",
-  },
-]
+// Map CourseModel to Project type
+function mapCourseToProject(course: CourseModel): Project {
+  // Map phase to currentStep:
+  // - undefined or no phase -> "1" (upload stage)
+  // - "markdown" -> "2" (outline stage)
+  // - "website" -> "3" (design stage)
+  // Note: Step "4" (deployed) doesn't exist in API, so we don't map to it
+  let currentStep: "1" | "2" | "3" | "4" = "1"
+  if (course.phase === "markdown") {
+    currentStep = "2"
+  } else if (course.phase === "website") {
+    currentStep = "3"
+  }
+
+  return {
+    id: course.id,
+    name: course.name,
+    updatedAt: new Date(course.updated_at),
+    currentStep,
+  }
+}
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
+  const { user, logout, updatePreferences } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
+
+  // Help center section collapse state
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set([
+    "getting-started", "uploading-files", "creating-outline", "designing-website", "faqs", "troubleshooting", "contact"
+  ]))
+
+  // Table of contents collapse state
+  const [isTocExpanded, setIsTocExpanded] = useState(true)
 
   // Determine active tab from route
   const getActiveTab = (): "dashboard" | "preferences" | "help-center" => {
@@ -72,46 +65,102 @@ export function DashboardPage() {
     }
   }
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [deleteConfirmText, setDeleteConfirmText] = useState("")
-  const [isEditingUsername, setIsEditingUsername] = useState(false)
-  const [username, setUsername] = useState("Guest")
-  const [editedUsername, setEditedUsername] = useState("Guest")
+  const username = user?.name || user?.email || "Guest"
+
+  // Initialize theme and language from user preferences or localStorage
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
+    // First try to get from user preferences
+    if (user?.preferences?.theme) {
+      return user.preferences.theme
+    }
+    // Fallback to localStorage
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
     return savedTheme || "dark"
   })
   const [currentLanguage, setCurrentLanguage] = useState<string>(() => {
+    // First try to get from user preferences
+    if (user?.preferences?.language) {
+      return user.preferences.language
+    }
+    // Fallback to localStorage
     return localStorage.getItem("language") || "en"
   })
+
+  // Sync preferences when user data changes
+  useEffect(() => {
+    if (user?.preferences) {
+      if (user.preferences.theme) {
+        setTheme(user.preferences.theme)
+        localStorage.setItem("theme", user.preferences.theme)
+      }
+      if (user.preferences.language) {
+        setCurrentLanguage(user.preferences.language)
+        i18n.changeLanguage(user.preferences.language)
+        localStorage.setItem("language", user.preferences.language)
+      }
+    }
+  }, [user])
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
   const languageDropdownRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Projects state
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true)
+  const [projectsError, setProjectsError] = useState<string | null>(null)
+
+  // Fetch courses from API
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!user) {
+        setIsLoadingProjects(false)
+        return
+      }
+
+      try {
+        setIsLoadingProjects(true)
+        setProjectsError(null)
+        const response = await getAllCourses()
+        if (response.status === "success") {
+          const mappedProjects = response.courses.map(mapCourseToProject)
+          setProjects(mappedProjects)
+        }
+      } catch (error) {
+        console.error("Failed to fetch courses:", error)
+        setProjectsError(error instanceof Error ? error.message : "Failed to load courses")
+        setProjects([])
+      } finally {
+        setIsLoadingProjects(false)
+      }
+    }
+
+    fetchCourses()
+  }, [user])
+
+  // Calculate statistics
+  const totalProjects = projects.filter((p) => p.currentStep !== "1").length
+  const step2Count = projects.filter((p) => p.currentStep === "2").length
+  const step3Count = projects.filter((p) => p.currentStep === "3").length
+  const step4Count = projects.filter((p) => p.currentStep === "4").length
+
+  // Group projects by step and sort by updated date (newest first)
+  const step2Projects = projects
+    .filter((p) => p.currentStep === "2")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+
+  const step3Projects = projects
+    .filter((p) => p.currentStep === "3")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+
+  const step4Projects = projects
+    .filter((p) => p.currentStep === "4")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 
   // Tooltip state
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastMousePositionRef = useRef<{ x: number; y: number } | null>(null)
   const mouseMoveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Calculate statistics
-  const totalProjects = mockProjects.filter((p) => p.currentStep !== "1").length
-  const step2Count = mockProjects.filter((p) => p.currentStep === "2").length
-  const step3Count = mockProjects.filter((p) => p.currentStep === "3").length
-  const step4Count = mockProjects.filter((p) => p.currentStep === "4").length
-
-  // Group projects by step and sort by updated date (newest first)
-  const step2Projects = mockProjects
-    .filter((p) => p.currentStep === "2")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-
-  const step3Projects = mockProjects
-    .filter((p) => p.currentStep === "3")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-
-  const step4Projects = mockProjects
-    .filter((p) => p.currentStep === "4")
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -123,23 +172,9 @@ export function DashboardPage() {
     }).format(date)
   }
 
-  const generateUniqueProjectId = (existingProjects: Project[]): string => {
-    let newId: string
-    let attempts = 0
-    const maxAttempts = 100
-
-    do {
-      newId = `project-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-      attempts++
-    } while (existingProjects.some((p) => p.id === newId) && attempts < maxAttempts)
-
-    return newId
-  }
-
   const handleCreateNewCourse = () => {
-    // Generate a unique project ID that doesn't conflict with existing projects
-    const newProjectId = generateUniqueProjectId(mockProjects)
-    navigate(`/${newProjectId}/upload`)
+    // Navigate to upload page (course ID will be generated after upload)
+    navigate(`/upload`)
   }
 
   const handleProjectClick = (project: Project) => {
@@ -156,53 +191,32 @@ export function DashboardPage() {
     setShowUserMenu(!showUserMenu)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowUserMenu(false)
-    // Redirect to login page
+    await logout()
     navigate("/login")
   }
 
-  const handleDeleteAccount = () => {
-    setShowDeleteModal(true)
-  }
-
-  const handleDeleteConfirm = () => {
-    if (deleteConfirmText === "DELETE") {
-      console.log("Account deleted")
-      // Add delete account logic here
-      setShowDeleteModal(false)
-      setDeleteConfirmText("")
-    }
-  }
-
-  const handleDeleteCancel = () => {
-    setShowDeleteModal(false)
-    setDeleteConfirmText("")
-  }
-
-  const handleEditUsername = () => {
-    setIsEditingUsername(true)
-    setEditedUsername(username)
-  }
-
-  const handleSaveUsername = () => {
-    if (editedUsername.trim()) {
-      setUsername(editedUsername.trim())
-    }
-    setIsEditingUsername(false)
-  }
-
-  const handleCancelEditUsername = () => {
-    setEditedUsername(username)
-    setIsEditingUsername(false)
-  }
 
   // Handle language change
-  const handleLanguageChange = (lang: string) => {
+  const handleLanguageChange = async (lang: string) => {
     setCurrentLanguage(lang)
     i18n.changeLanguage(lang)
     localStorage.setItem("language", lang)
     setShowLanguageDropdown(false)
+
+    // Update preferences via API if user is authenticated
+    if (user) {
+      try {
+        await updatePreferences({
+          theme: theme,
+          language: lang as 'en' | 'zh-TW',
+        })
+      } catch (error) {
+        console.error('Failed to update language preference:', error)
+        // Optionally show error message to user
+      }
+    }
   }
 
   // Sync language state with i18n on mount
@@ -232,9 +246,22 @@ export function DashboardPage() {
     }
   }, [showLanguageDropdown])
 
-  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+  const handleThemeChange = async (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme)
     localStorage.setItem("theme", newTheme)
+
+    // Update preferences via API if user is authenticated
+    if (user) {
+      try {
+        await updatePreferences({
+          theme: newTheme,
+          language: currentLanguage as 'en' | 'zh-TW',
+        })
+      } catch (error) {
+        console.error('Failed to update theme preference:', error)
+        // Optionally show error message to user
+      }
+    }
   }
 
   // Apply theme on mount and when theme changes
@@ -427,6 +454,47 @@ export function DashboardPage() {
     return "hover:bg-[#282C34]"
   }
 
+  // Help center helper functions
+  const scrollToSection = (sectionId: string) => {
+    // Expand section if collapsed first
+    const needsExpansion = !expandedSections.has(sectionId)
+    if (needsExpansion) {
+      setExpandedSections((prev) => new Set(prev).add(sectionId))
+    }
+
+    // Use setTimeout to wait for DOM update if section was expanded
+    setTimeout(() => {
+      const element = document.getElementById(sectionId)
+      const scrollContainer = document.querySelector('main.overflow-auto')
+
+      if (element && scrollContainer) {
+        // Calculate offset to account for any headers
+        const offset = 20
+        const containerRect = scrollContainer.getBoundingClientRect()
+        const elementRect = element.getBoundingClientRect()
+
+        // Calculate position relative to the scroll container
+        const scrollPosition = scrollContainer.scrollTop
+        const elementTop = elementRect.top - containerRect.top + scrollPosition
+
+        scrollContainer.scrollTo({
+          top: elementTop - offset,
+          behavior: "smooth"
+        })
+      } else if (element) {
+        // Fallback to window scroll if container not found
+        const offset = 100
+        const elementPosition = element.getBoundingClientRect().top
+        const offsetPosition = elementPosition + window.pageYOffset - offset
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        })
+      }
+    }, needsExpansion ? 150 : 0)
+  }
+
   const getStepColor = (step: string) => {
     // Compare with translated strings
     if (step === t("dashboard.statistics.outlineStage") || step === "Outline stage") {
@@ -559,73 +627,6 @@ export function DashboardPage() {
               <div className="mx-auto flex max-w-7xl flex-col gap-8 px-8 py-10">
                 {activeTab === "dashboard" && (
                   <>
-                    {/* User Card */}
-                    <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className={`w-16 h-16 rounded-full ${getCardSurface()} flex items-center justify-center border ${getBorderColor()} flex-shrink-0`}>
-                            <User className={`w-8 h-8 ${getTextColor()}`} />
-                          </div>
-                          <div className="flex-1">
-                            {isEditingUsername ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={editedUsername}
-                                  onChange={(e) => setEditedUsername(e.target.value)}
-                                  className={`flex-1 px-3 py-1 rounded-md ${getCardSurface()} border ${getBorderColor()} ${getTextColor()} text-xl font-semibold focus:outline-none focus:border-[#61AFEF]`}
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      handleSaveUsername()
-                                    } else if (e.key === "Escape") {
-                                      handleCancelEditUsername()
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={handleSaveUsername}
-                                  className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label={t("dashboard.save")}
-                                >
-                                  <Check className="w-5 h-5 text-[#8DB472]" />
-                                </button>
-                                <button
-                                  onClick={handleCancelEditUsername}
-                                  className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label={t("dashboard.cancel")}
-                                >
-                                  <X className={`w-5 h-5 ${getMutedText()}`} />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <h2 className={`text-xl font-semibold ${getTextColor()} whitespace-nowrap`}>{username}</h2>
-                                <button
-                                  onClick={handleEditUsername}
-                                  className={`p-1 rounded ${getHoverBg()} transition-colors cursor-pointer`}
-                                  aria-label={t("dashboard.edit")}
-                                >
-                                  <Pencil className={`w-4 h-4 ${getMutedText()}`} />
-                                </button>
-                              </div>
-                            )}
-                            <p className={`text-sm ${getMutedText()} whitespace-nowrap`}>{t("dashboard.userAccount")}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleDeleteAccount}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition border cursor-pointer whitespace-nowrap ${theme === "light"
-                            ? "bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                            : "bg-red-900/50 text-red-400 hover:bg-red-900/70 border-red-800/50"
-                            }`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>{t("dashboard.deleteAccount")}</span>
-                        </button>
-                      </div>
-                    </section>
-
                     {/* Statistics Section */}
                     <section className="grid grid-cols-2 xl:grid-cols-4 gap-6">
                       <div className={`rounded-2xl border-2 border-[#C678DD] ${getCardBg()} p-6 overflow-hidden`}>
@@ -698,17 +699,56 @@ export function DashboardPage() {
                           {t("dashboard.projects.createNewCourse")}
                         </button>
                       </div>
-                      <div className="space-y-6">
-                        {renderProjectSection(t("dashboard.statistics.outlineStage"), step2Projects)}
-                        {step2Projects.length > 0 && (step3Projects.length > 0 || step4Projects.length > 0) && (
-                          <div className={`border-t ${getBorderColor()}`} />
-                        )}
-                        {renderProjectSection(t("dashboard.statistics.designStage"), step3Projects)}
-                        {step3Projects.length > 0 && step4Projects.length > 0 && (
-                          <div className={`border-t ${getBorderColor()}`} />
-                        )}
-                        {renderProjectSection(t("dashboard.statistics.deployed"), step4Projects)}
-                      </div>
+                      {isLoadingProjects ? (
+                        <div className={`text-center py-12 ${getMutedText()}`}>
+                          <p>{t("dashboard.projects.loading") || "Loading projects..."}</p>
+                        </div>
+                      ) : projectsError ? (
+                        <div className={`text-center py-12 ${getMutedText()}`}>
+                          <p className="text-red-500 dark:text-red-400 mb-2">{projectsError}</p>
+                          <button
+                            onClick={() => {
+                              const fetchCourses = async () => {
+                                if (!user) return
+                                try {
+                                  setIsLoadingProjects(true)
+                                  setProjectsError(null)
+                                  const response = await getAllCourses()
+                                  if (response.status === "success") {
+                                    const mappedProjects = response.courses.map(mapCourseToProject)
+                                    setProjects(mappedProjects)
+                                  }
+                                } catch (error) {
+                                  console.error("Failed to fetch courses:", error)
+                                  setProjectsError(error instanceof Error ? error.message : "Failed to load courses")
+                                } finally {
+                                  setIsLoadingProjects(false)
+                                }
+                              }
+                              fetchCourses()
+                            }}
+                            className={`rounded-md bg-[#61AFEF] px-4 py-2 text-sm font-medium transition hover:bg-[#82C6FF] ${theme === "light" ? "text-white" : "text-[#1E2025]"}`}
+                          >
+                            {t("dashboard.projects.retry") || "Retry"}
+                          </button>
+                        </div>
+                      ) : projects.length === 0 ? (
+                        <div className={`text-center py-12 ${getMutedText()}`}>
+                          <p>{t("dashboard.projects.noProjects") || "No projects yet. Create your first course to get started!"}</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {renderProjectSection(t("dashboard.statistics.outlineStage"), step2Projects)}
+                          {step2Projects.length > 0 && (step3Projects.length > 0 || step4Projects.length > 0) && (
+                            <div className={`border-t ${getBorderColor()}`} />
+                          )}
+                          {renderProjectSection(t("dashboard.statistics.designStage"), step3Projects)}
+                          {step3Projects.length > 0 && step4Projects.length > 0 && (
+                            <div className={`border-t ${getBorderColor()}`} />
+                          )}
+                          {renderProjectSection(t("dashboard.statistics.deployed"), step4Projects)}
+                        </div>
+                      )}
                     </section>
                   </>
                 )}
@@ -794,21 +834,19 @@ export function DashboardPage() {
                             <div className={`absolute top-full right-0 mt-2 rounded-md ${getCardBg()} border ${getBorderColor()} shadow-lg z-50 overflow-hidden min-w-[140px]`}>
                               <button
                                 onClick={() => handleLanguageChange("en")}
-                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                                  currentLanguage === "en"
-                                    ? `${getCardSurface()} ${getTextColor()} font-medium`
-                                    : `${getTextColor()} ${getHoverBg()}`
-                                }`}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${currentLanguage === "en"
+                                  ? `${getCardSurface()} ${getTextColor()} font-medium`
+                                  : `${getTextColor()} ${getHoverBg()}`
+                                  }`}
                               >
                                 {t("preferences.language.english")}
                               </button>
                               <button
                                 onClick={() => handleLanguageChange("zh-TW")}
-                                className={`w-full text-left px-3 py-2 text-sm transition-colors border-t ${getBorderColor()} ${
-                                  currentLanguage === "zh-TW"
-                                    ? `${getCardSurface()} ${getTextColor()} font-medium`
-                                    : `${getTextColor()} ${getHoverBg()}`
-                                }`}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors border-t ${getBorderColor()} ${currentLanguage === "zh-TW"
+                                  ? `${getCardSurface()} ${getTextColor()} font-medium`
+                                  : `${getTextColor()} ${getHoverBg()}`
+                                  }`}
                               >
                                 {t("preferences.language.traditionalChinese")}
                               </button>
@@ -822,9 +860,200 @@ export function DashboardPage() {
 
                 {activeTab === "help-center" && (
                   <div>
-                    <h2 className={`text-lg font-semibold ${getTextColor()} mb-6`}>{t("helpCenter.title")}</h2>
-                    <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6 w-full`}>
-                      <p className={`text-sm ${getMutedText()}`}>{t("helpCenter.content")}</p>
+                    <div className="flex items-center gap-3 mb-6">
+                      <BookOpen className="w-7 h-7 text-[#61AFEF]" />
+                      <h2 className={`text-3xl font-semibold ${getTextColor()}`}>{t("helpCenter.title")}</h2>
+                    </div>
+
+                    {/* Table of Contents */}
+                    <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} w-full overflow-hidden`}>
+                      <button
+                        onClick={() => setIsTocExpanded(!isTocExpanded)}
+                        className="w-full px-6 py-4 flex items-center justify-between transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-5 h-5 text-[#61AFEF]" />
+                          <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.tableOfContents.title")}</h3>
+                        </div>
+                        <div className={`rounded-full p-1.5 ${getHoverBg()} transition-colors`}>
+                          {isTocExpanded ? (
+                            <ChevronDown className={`w-5 h-5 ${getTextColor()} transition-transform`} />
+                          ) : (
+                            <ChevronLeft className={`w-5 h-5 ${getTextColor()} transition-transform`} />
+                          )}
+                        </div>
+                      </button>
+                      {isTocExpanded && (
+                        <nav className="px-6 pb-6 space-y-2">
+                          {[
+                            { id: "getting-started", icon: BookOpen, label: t("helpCenter.gettingStarted.title") },
+                            { id: "uploading-files", icon: Upload, label: t("helpCenter.uploadingFiles.title") },
+                            { id: "creating-outline", icon: FileText, label: t("helpCenter.creatingOutline.title") },
+                            { id: "designing-website", icon: Palette, label: t("helpCenter.designingWebsite.title") },
+                            { id: "faqs", icon: MessageCircle, label: t("helpCenter.faqs.title") },
+                            { id: "troubleshooting", icon: AlertCircle, label: t("helpCenter.troubleshooting.title") },
+                            { id: "contact", icon: Mail, label: t("helpCenter.contact.title") },
+                          ].map(({ id, icon: Icon, label }) => (
+                            <button
+                              key={id}
+                              onClick={() => scrollToSection(id)}
+                              className={`w-full text-left px-3 py-2 rounded-md ${getHoverBg()} transition-colors flex items-center gap-2 group`}
+                            >
+                              <Icon className="w-4 h-4 text-[#61AFEF] group-hover:text-[#82C6FF] transition-colors" />
+                              <span className={`text-sm ${getTextColor()} group-hover:text-[#61AFEF] transition-colors`}>{label}</span>
+                            </button>
+                          ))}
+                        </nav>
+                      )}
+                    </section>
+                    <div className="my-10"></div>
+
+                    {/* Getting Started */}
+                    <section id="getting-started" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <BookOpen className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.gettingStarted.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.gettingStarted.description")}</p>
+                        <ol className="list-decimal list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.gettingStarted.step1")}</li>
+                          <li>{t("helpCenter.gettingStarted.step2")}</li>
+                          <li>{t("helpCenter.gettingStarted.step3")}</li>
+                          <li>{t("helpCenter.gettingStarted.step4")}</li>
+                        </ol>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Uploading Files */}
+                    <section id="uploading-files" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Upload className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.uploadingFiles.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.uploadingFiles.description")}</p>
+                        <ul className="list-disc list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.uploadingFiles.tip1")}</li>
+                          <li>{t("helpCenter.uploadingFiles.tip2")}</li>
+                          <li>{t("helpCenter.uploadingFiles.tip3")}</li>
+                          <li>{t("helpCenter.uploadingFiles.tip4")}</li>
+                        </ul>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Creating Course Outline */}
+                    <section id="creating-outline" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <FileText className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.creatingOutline.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.creatingOutline.description")}</p>
+                        <ul className="list-disc list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.creatingOutline.tip1")}</li>
+                          <li>{t("helpCenter.creatingOutline.tip2")}</li>
+                          <li>{t("helpCenter.creatingOutline.tip3")}</li>
+                          <li>{t("helpCenter.creatingOutline.tip4")}</li>
+                        </ul>
+                        <p className="mt-4">{t("helpCenter.creatingOutline.note")}</p>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Designing Website */}
+                    <section id="designing-website" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Palette className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.designingWebsite.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.designingWebsite.description")}</p>
+                        <ul className="list-disc list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.designingWebsite.tip1")}</li>
+                          <li>{t("helpCenter.designingWebsite.tip2")}</li>
+                          <li>{t("helpCenter.designingWebsite.tip3")}</li>
+                          <li>{t("helpCenter.designingWebsite.tip4")}</li>
+                        </ul>
+                        <p className="mt-4">{t("helpCenter.designingWebsite.preview")}</p>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* FAQs */}
+                    <section id="faqs" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <MessageCircle className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.faqs.title")}</h3>
+                      </div>
+                      <div className={`space-y-4 text-sm ${getMutedText()}`}>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q1.question")}</h4>
+                          <p>{t("helpCenter.faqs.q1.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q2.question")}</h4>
+                          <p>{t("helpCenter.faqs.q2.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q3.question")}</h4>
+                          <p>{t("helpCenter.faqs.q3.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q4.question")}</h4>
+                          <p>{t("helpCenter.faqs.q4.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q5.question")}</h4>
+                          <p>{t("helpCenter.faqs.q5.answer")}</p>
+                        </div>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Troubleshooting */}
+                    <section id="troubleshooting" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <AlertCircle className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.troubleshooting.title")}</h3>
+                      </div>
+                      <div className={`space-y-4 text-sm ${getMutedText()}`}>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2 flex items-center gap-2`}>
+                            <AlertCircle className="w-4 h-4 text-[#E5C07B]" />
+                            {t("helpCenter.troubleshooting.issue1.title")}
+                          </h4>
+                          <p>{t("helpCenter.troubleshooting.issue1.solution")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2 flex items-center gap-2`}>
+                            <AlertCircle className="w-4 h-4 text-[#E5C07B]" />
+                            {t("helpCenter.troubleshooting.issue2.title")}
+                          </h4>
+                          <p>{t("helpCenter.troubleshooting.issue2.solution")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2 flex items-center gap-2`}>
+                            <AlertCircle className="w-4 h-4 text-[#E5C07B]" />
+                            {t("helpCenter.troubleshooting.issue3.title")}
+                          </h4>
+                          <p>{t("helpCenter.troubleshooting.issue3.solution")}</p>
+                        </div>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Contact Support */}
+                    <section id="contact" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Mail className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.contact.title")}</h3>
+                      </div>
+                      <div className={`text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.contact.description")}</p>
+                      </div>
                     </section>
                   </div>
                 )}
@@ -849,60 +1078,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={handleDeleteCancel}
-        >
-          <div
-            className={`${getCardSurface()} border ${getBorderColor()} rounded-lg shadow-lg p-6 max-w-md w-full mx-4`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className={`text-xl font-semibold ${getTextColor()} mb-4`}>{t("dashboard.deleteModal.title")}</h2>
-            <div className={`text-sm ${getMutedText()} mb-6 space-y-2`}>
-              <p>{t("dashboard.deleteModal.confirmMessage")}</p>
-              <p>
-                {currentLanguage === "en" ? (
-                  <>
-                    {t("dashboard.deleteModal.warningMessage").split("CANNOT be undone")[0]}
-                    <span className={`font-bold ${getTextColor()}`}>CANNOT be undone</span>
-                    {t("dashboard.deleteModal.warningMessage").split("CANNOT be undone")[1]}
-                  </>
-                ) : (
-                  t("dashboard.deleteModal.warningMessage")
-                )}
-              </p>
-              <p className="mt-4">{t("dashboard.deleteModal.confirmInstruction")}</p>
-            </div>
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder={t("dashboard.deleteModal.placeholder")}
-              className={`w-full px-4 py-2 rounded-md ${getCardBg()} border ${getBorderColor()} ${getTextColor()} mb-6 focus:outline-none focus:border-[#61AFEF]`}
-            />
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={handleDeleteCancel}
-                className={`px-4 py-2 rounded-md border ${getBorderColor()} ${getCardBg()} ${getTextColor()} text-sm font-medium transition ${getHoverBg()} cursor-pointer`}
-              >
-                {t("dashboard.deleteModal.cancel")}
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleteConfirmText !== "DELETE"}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${theme === "light"
-                  ? "bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                  : "bg-red-900/50 text-red-400 hover:bg-red-900/70 border-red-800/50"
-                  }`}
-              >
-                {t("dashboard.deleteModal.delete")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

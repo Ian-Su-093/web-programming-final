@@ -1,40 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { useTranslation } from "react-i18next"
 import type { MouseEvent as ReactMouseEvent } from "react"
 import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
 import { CourseOutline } from "@/components/CourseOutline"
 import { Sidebar } from "@/components/Sidebar"
-import { Modal } from "@/components/ui/modal"
 import type { CourseData, Message } from "@/types"
-
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "I want to build a course that teaches developers how to co-create outlines with AI.",
-    timestamp: new Date("2024-04-12T09:27:00"),
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content: "Great! Tell me about your target learners and how you envision supporting them after each module.",
-    timestamp: new Date("2024-04-12T09:27:00"),
-  },
-  {
-    id: "3",
-    role: "user",
-    content: "They already know React. I need structure that shows how to pair UI craft with AI prompts.",
-    timestamp: new Date("2024-04-12T09:29:00"),
-  },
-  {
-    id: "4",
-    role: "assistant",
-    content: "Understood. I drafted an outline that escalates from foundational UX to advanced AI orchestration. Feel free to iterate further below.",
-    timestamp: new Date("2024-04-12T09:30:00"),
-  },
-]
+import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage, updateCoursePhase, getCourseMarkdownFiles } from "@/lib/api"
 
 const mockCourseData: CourseData = {
   title: "AI-Powered Course Design with React & Next.js",
@@ -79,22 +51,125 @@ const mockCourseData: CourseData = {
 }
 
 export function OutlinePage() {
-  const { t } = useTranslation()
-  const [messages, setMessages] = useState<Message[]>(mockMessages)
+  const [messages, setMessages] = useState<Message[]>([])
   const [courseData, setCourseData] = useState<CourseData>(mockCourseData)
   const [isLoading, setIsLoading] = useState(false)
+  const [isPolling, setIsPolling] = useState(false)
   const [chatWidth, setChatWidth] = useState(66.67)
   const [isResizing, setIsResizing] = useState(false)
   const [isChatHidden, setIsChatHidden] = useState(false)
   const [isSwapped, setIsSwapped] = useState(false)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [hasMarkdownFiles, setHasMarkdownFiles] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  
+  const sendingRef = useRef(false) // Add this ref to track if a send is in progress
+  const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pollingStartTimeRef = useRef<number | null>(null)
+  const firstAssistantMessageTimeRef = useRef<number | null>(null)
+  const lastMessageCountRef = useRef<number>(0)
+
+  // Fetch course data and messages on mount
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getCourseById(id)
+
+        // Check if course phase is 'website' - redirect to web-design page if so
+        if (response.course.phase === 'website') {
+          navigate(`/${id}/web-design`, { replace: true })
+          return
+        }
+
+        // Update course title with actual name from API
+        setCourseData((prev) => ({
+          ...prev,
+          title: response.course.name,
+        }))
+      } catch (error) {
+        console.error("Failed to fetch course data:", error)
+        // Keep the mock data on error
+      }
+    }
+
+    const fetchMessages = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getMessagesByCourseId(id)
+        // Convert MessageModel[] to Message[]
+        // Filter out null values (messages with null content)
+        const convertedMessages = response.messages
+          .map(convertMessageModelToMessage)
+          .filter((msg): msg is Message => msg !== null)
+
+        setMessages(convertedMessages)
+        lastMessageCountRef.current = convertedMessages.length
+      } catch (error) {
+        console.error("Failed to fetch messages:", error)
+        // Keep empty messages on error
+      }
+    }
+
+    const fetchMarkdownFiles = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getCourseMarkdownFiles(id)
+        const files = response.markdown_name_list || []
+        setHasMarkdownFiles(files.length > 0)
+      } catch (error) {
+        console.error("Failed to fetch markdown files:", error)
+        setHasMarkdownFiles(false)
+      }
+    }
+
+    fetchCourseData()
+    fetchMessages()
+    fetchMarkdownFiles()
+
+    // Cleanup polling on unmount or id change
+    return () => {
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current)
+        pollingTimeoutRef.current = null
+      }
+      setIsPolling(false)
+      pollingStartTimeRef.current = null
+      firstAssistantMessageTimeRef.current = null
+    }
+  }, [id])
+
+  // Refresh markdown files when messages change (after agent replies)
+  useEffect(() => {
+    const refreshMarkdownFiles = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getCourseMarkdownFiles(id)
+        const files = response.markdown_name_list || []
+        setHasMarkdownFiles(files.length > 0)
+      } catch (error) {
+        console.error("Failed to refresh markdown files:", error)
+      }
+    }
+
+    refreshMarkdownFiles()
+  }, [messages, id])
+
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
@@ -104,7 +179,7 @@ export function OutlinePage() {
   // Apply theme on mount and when theme changes
   useEffect(() => {
     document.documentElement.classList.remove("dark", "theme-light")
-    
+
     if (theme === "system") {
       const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
       document.documentElement.classList.toggle("dark", systemPrefersDark)
@@ -160,78 +235,194 @@ export function OutlinePage() {
     return "bg-[#3E4451]"
   }
 
-  const handleStepSelect = (step: 1 | 2 | 3) => {
-    if (step === 1) {
-      setShowConfirmModal(true)
-    } else if (step === 2) {
-      id && navigate(`/${id}/web-design`)
+  const handleNextStep = async () => {
+    if (id) {
+      try {
+        // Update course phase to 'website' before navigating
+        await updateCoursePhase(id, 'website')
+        navigate(`/${id}/web-design`)
+      } catch (error) {
+        console.error("Failed to update course phase:", error)
+        // Still navigate even if phase update fails
+        navigate(`/${id}/web-design`)
+      }
     }
-    // Step 2 is current, but clicking it navigates to web-design
   }
 
-  const handleConfirm = () => {
-    setShowConfirmModal(false)
-    id && navigate(`/${id}/upload`)
+  // Stop polling function
+  const stopPolling = () => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current)
+      pollingTimeoutRef.current = null
+    }
+    setIsPolling(false)
+    pollingStartTimeRef.current = null
+    firstAssistantMessageTimeRef.current = null
   }
 
-  const handleCancel = () => {
-    setShowConfirmModal(false)
+  // Polling function to check for new assistant messages
+  const pollForMessages = async () => {
+    if (!id) {
+      stopPolling()
+      return
+    }
+
+    try {
+      const response = await getMessagesByCourseId(id)
+      const convertedMessages = response.messages
+        .map(convertMessageModelToMessage)
+        .filter((msg): msg is Message => msg !== null)
+
+      // Check if we have new assistant messages (not tool messages)
+      const currentMessageCount = convertedMessages.length
+      const hasNewAssistantMessage = convertedMessages.some(
+        (msg, idx) =>
+          idx >= lastMessageCountRef.current &&
+          msg.role === "assistant" &&
+          msg.content !== "__TOOL_PROCESSING__"
+      )
+
+      // Update messages
+      setMessages(convertedMessages)
+      lastMessageCountRef.current = currentMessageCount
+
+      const now = Date.now()
+      const startTime = pollingStartTimeRef.current
+
+      // If we found a new assistant message, record the time (but continue polling)
+      if (hasNewAssistantMessage && !firstAssistantMessageTimeRef.current) {
+        firstAssistantMessageTimeRef.current = now
+      }
+
+      // Check if we should stop polling:
+      // 1. If we've detected an assistant message and 6 seconds have passed since detection
+      // 2. If we've exceeded maximum polling duration (5 minutes) without any assistant message
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+      if (firstAssistantTime) {
+        // We've detected an assistant message - continue for 6 more seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+          return
+        }
+      } else if (startTime && now - startTime > 5 * 60 * 1000) {
+        // Maximum duration reached without any assistant message
+        stopPolling()
+        setIsLoading(false)
+        console.warn("Polling timeout: No assistant response received within 5 minutes")
+        return
+      }
+
+      // Calculate next poll interval
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const pollInterval = 2000 // 2 seconds
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      } else {
+        // Before assistant message: First 30 seconds: poll every 12 seconds, then every 2.5 seconds
+        const elapsed = startTime ? now - startTime : 0
+        const pollInterval = elapsed < 30000 ? 12000 : 2500 // 12s initially, 2.5s after 30s
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      }
+    } catch (error) {
+      console.error("Failed to poll for messages:", error)
+      // Continue polling even on error (might be temporary network issue)
+      const now = Date.now()
+      const startTime = pollingStartTimeRef.current
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          pollingTimeoutRef.current = setTimeout(pollForMessages, 2000)
+        }
+      } else if (startTime) {
+        // Before assistant message: use adaptive intervals
+        const elapsed = now - startTime
+        if (elapsed > 5 * 60 * 1000) {
+          // Maximum duration reached
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          const pollInterval = elapsed < 30000 ? 12000 : 2500
+          pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        }
+      } else {
+        stopPolling()
+        setIsLoading(false)
+      }
+    }
   }
 
   const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    if (!id) {
+      console.error("Course ID is missing")
+      return
+    }
+
+    // Prevent duplicate sends (while sending or polling)
+    if (sendingRef.current || isLoading || isPolling) {
+      return
+    }
+
+    // Stop any existing polling
+    stopPolling()
+
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
       role: "user",
-      content,
+      content: content.trim(),
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    // Add optimistic message immediately
+    setMessages((prev) => [...prev, optimisticMessage])
+    sendingRef.current = true
     setIsLoading(true)
 
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: t("outline.assistant.demoResponse"),
-        timestamp: new Date(),
-      }
+    try {
+      // Send the message to the backend (returns immediately)
+      const response = await createMessage(id, content)
 
-      setMessages((prev) => [...prev, assistantMessage])
+      // Replace optimistic message with real one from server
+      const realUserMessage = convertMessageModelToMessage(response.message)
+      setMessages((prev) => {
+        if (realUserMessage) {
+          const filtered = prev.filter((msg) => msg.id !== optimisticMessage.id)
+          const updated = [...filtered, realUserMessage]
+          lastMessageCountRef.current = updated.length
+          return updated
+        } else {
+          // If conversion failed, keep optimistic message for now
+          lastMessageCountRef.current = prev.length
+          return prev
+        }
+      })
+
+      // Start polling for assistant response
+      setIsPolling(true)
+      pollingStartTimeRef.current = Date.now()
+      pollingTimeoutRef.current = setTimeout(pollForMessages, 12000) // First poll after 12 seconds
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      // Remove the optimistic message on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
       setIsLoading(false)
-
-      if (content.toLowerCase().includes("course") || content.toLowerCase().includes("outline")) {
-        setCourseData({
-          title: "AI-Powered Course Design with React & Next.js",
-          outline: [
-            {
-              id: "1",
-              title: "Kickoff & Discovery",
-              description: "Overview of course planning fundamentals",
-              duration: "2 hours",
-              week: 1,
-              topics: [
-                "Define target learner persona",
-                "Capture scope with zod-powered schemas",
-                "Map conversational UX flows",
-              ],
-            },
-            {
-              id: "2",
-              title: "Interface Foundations",
-              description: "Deep dive into advanced concepts",
-              duration: "3 hours",
-              week: 2,
-              topics: [
-                "Design One Dark Pro inspired UI with Tailwind & shadcn primitives",
-                "Structure chat and outline panes in Next.js App Router",
-                "Instrument chat state management patterns",
-              ],
-            },
-          ],
-        })
-      }
-    }, 1000)
+      sendingRef.current = false
+    } finally {
+      // Note: We don't set isLoading to false here - it will be set to false when polling stops
+      sendingRef.current = false
+    }
   }
 
   const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -283,21 +474,11 @@ export function OutlinePage() {
 
   return (
     <div ref={containerRef} className={`flex h-screen ${getBgColor()} overflow-hidden`} onClick={handleMainContentClick}>
-      <Sidebar 
+      <Sidebar
         ref={sidebarRef}
-        currentStep={2} 
-        onStepSelect={handleStepSelect}
+        currentStep={2}
         isCollapsed={isSidebarCollapsed}
         onCollapseChange={setIsSidebarCollapsed}
-      />
-      
-      <Modal
-        isOpen={showConfirmModal}
-        onClose={handleCancel}
-        onConfirm={handleConfirm}
-        message={t("outline.modal.message")}
-        confirmText={t("outline.modal.continue")}
-        cancelText={t("outline.modal.cancel")}
       />
 
       {!isChatHidden && (
@@ -306,18 +487,18 @@ export function OutlinePage() {
             <>
               <div className={`flex flex-col border-r ${getBorderColor()}`} style={{ width: `${100 - chatWidth}%` }}>
                 <CourseOutline
-                  courseData={courseData}
+                  courseId={id}
                   onToggleChat={() => setIsChatHidden(!isChatHidden)}
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
+                  messagesCount={messages.length}
                 />
               </div>
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>
@@ -326,12 +507,12 @@ export function OutlinePage() {
                 <ChatSection
                   messages={messages}
                   onSendMessage={handleSendMessage}
-                  isLoading={isLoading}
+                  isLoading={isLoading || isPolling}
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
-                  onCourseTitleChange={(title) => setCourseData({ ...courseData, title })}
-                  isEditable={true}
+                  onNextStep={handleNextStep}
+                  canProceedToNextStep={hasMarkdownFiles}
                 />
               </div>
             </>
@@ -341,30 +522,30 @@ export function OutlinePage() {
                 <ChatSection
                   messages={messages}
                   onSendMessage={handleSendMessage}
-                  isLoading={isLoading}
+                  isLoading={isLoading || isPolling}
                   onSwapPanels={handleSwapPanels}
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
-                  onCourseTitleChange={(title) => setCourseData({ ...courseData, title })}
-                  isEditable={true}
+                  onNextStep={handleNextStep}
+                  canProceedToNextStep={hasMarkdownFiles}
                 />
               </div>
 
               <div className="relative group" style={{ userSelect: "none" }}>
                 <div
-                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${
-                    isResizing ? "bg-[#61AFEF]" : ""
-                  }`}
+                  className={`w-1 ${getResizerColor()} hover:bg-[#61AFEF] transition-colors h-full ${isResizing ? "bg-[#61AFEF]" : ""
+                    }`}
                 />
                 <div onMouseDown={handleMouseDown} className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
               </div>
 
               <div className="flex flex-col flex-shrink-0" style={{ width: `${100 - chatWidth}%` }}>
                 <CourseOutline
-                  courseData={courseData}
+                  courseId={id}
                   onToggleChat={() => setIsChatHidden(!isChatHidden)}
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
+                  messagesCount={messages.length}
                 />
               </div>
             </>
@@ -375,14 +556,17 @@ export function OutlinePage() {
       {isChatHidden && (
         <div className="flex flex-col flex-1">
           <CourseOutline
-            courseData={courseData}
+            courseId={id}
             onToggleChat={() => setIsChatHidden(!isChatHidden)}
             isChatHidden={isChatHidden}
             isSwapped={isSwapped}
+            messagesCount={messages.length}
           />
         </div>
       )}
     </div>
   )
 }
+
+
 

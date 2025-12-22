@@ -1,23 +1,50 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { BookOpen, ChevronDown, ChevronLeft, ChevronFirst, ChevronLast } from "lucide-react"
-import type { CourseData } from "@/types"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { BookOpen, ChevronFirst, ChevronLast } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import { Card, CardContent } from "@/components/ui/card"
+import { getCourseMarkdownFiles, getCourseMarkdownFileContent } from "@/lib/api"
 
 interface CourseOutlineProps {
-  courseData: CourseData
+  courseId?: string
   onToggleChat: () => void
   isChatHidden: boolean
   isSwapped?: boolean
+  markdown?: string
+  messagesCount?: number // Track message count to detect new messages
 }
 
-export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwapped = false }: CourseOutlineProps) {
+export function CourseOutline({ courseId, onToggleChat, isChatHidden, isSwapped = false, markdown: externalMarkdown, messagesCount }: CourseOutlineProps) {
   const { t } = useTranslation()
-  const { outline } = courseData
-  // Initialize with all modules expanded
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(
-    new Set(outline.map((item) => item.id))
-  )
+
+  // Markdown files state
+  const [markdownFiles, setMarkdownFiles] = useState<string[]>([])
+  // Persist selected markdown file in localStorage keyed by courseId
+  const getStoredSelectedFile = (): string | null => {
+    if (!courseId) return null
+    const key = `selectedMarkdownFile_${courseId}`
+    return localStorage.getItem(key)
+  }
+  const setStoredSelectedFile = (file: string | null) => {
+    if (!courseId) return
+    const key = `selectedMarkdownFile_${courseId}`
+    if (file) {
+      localStorage.setItem(key, file)
+    } else {
+      localStorage.removeItem(key)
+    }
+  }
+  const [selectedMarkdownFile, setSelectedMarkdownFile] = useState<string | null>(() => getStoredSelectedFile())
+  const [markdownContent, setMarkdownContent] = useState<string>("")
+  const [isLoadingMarkdown, setIsLoadingMarkdown] = useState(false)
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false)
+  const versionDropdownRef = useRef<HTMLDivElement>(null)
+  const previousMessagesCountRef = useRef<number>(0)
+
+  // Update localStorage whenever selectedMarkdownFile changes
+  useEffect(() => {
+    setStoredSelectedFile(selectedMarkdownFile)
+  }, [selectedMarkdownFile, courseId])
 
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
@@ -72,153 +99,329 @@ export function CourseOutline({ courseData, onToggleChat, isChatHidden, isSwappe
     return "bg-[#111620]"
   }
 
-  const getCardBorder = () => {
-    if (theme === "light") return "border-gray-300"
-    return "border-[#3E4451]"
-  }
-
-  const getCardHoverBorder = () => {
-    if (theme === "light") return "hover:border-blue-400"
-    return "hover:border-[#61AFEF]/50"
-  }
-
   const getDividerColor = () => {
     if (theme === "light") return "bg-gray-200"
     return "bg-[#3E4451]"
   }
 
-  // Update expanded modules when outline changes
-  useEffect(() => {
-    setExpandedModules(new Set(outline.map((item) => item.id)))
-  }, [outline])
-
-  const toggleModule = (moduleId: string) => {
-    setExpandedModules((prev) => {
-      const next = new Set(prev)
-      if (next.has(moduleId)) {
-        next.delete(moduleId)
-      } else {
-        next.add(moduleId)
-      }
-      return next
-    })
+  const getCardSurface = () => {
+    if (theme === "light") return "bg-gray-100"
+    return "bg-[#282C34]"
   }
+
+  const getBorderColor = () => {
+    if (theme === "light") return "border-gray-200"
+    return "border-[#3E4451]"
+  }
+
+  // Fetch markdown files list when courseId changes
+  useEffect(() => {
+    const fetchMarkdownFiles = async () => {
+      if (!courseId) {
+        setMarkdownFiles([])
+        setSelectedMarkdownFile(null)
+        return
+      }
+
+      try {
+        const response = await getCourseMarkdownFiles(courseId)
+        const files = response.markdown_name_list || []
+        setMarkdownFiles(files)
+
+        // Restore stored selection or auto-select first file
+        setSelectedMarkdownFile((prev) => {
+          const stored = getStoredSelectedFile()
+          const currentSelection = stored || prev
+
+          if (files.length === 0) {
+            return null
+          }
+
+          // If stored/current selection exists in the new list, keep it
+          if (currentSelection && files.includes(currentSelection)) {
+            return currentSelection
+          }
+
+          // Otherwise, select first file
+          return files.length > 0 ? files[0] : null
+        })
+      } catch (error) {
+        console.error("Failed to fetch markdown files:", error)
+        setMarkdownFiles([])
+        setSelectedMarkdownFile(null)
+      }
+    }
+
+    fetchMarkdownFiles()
+  }, [courseId])
+
+  // Refresh markdown files when new messages arrive (after agent replies)
+  useEffect(() => {
+    if (messagesCount !== undefined && messagesCount > previousMessagesCountRef.current) {
+      // Messages count increased, refresh markdown files
+      previousMessagesCountRef.current = messagesCount
+
+      const refreshMarkdownFiles = async () => {
+        if (!courseId) return
+
+        try {
+          const response = await getCourseMarkdownFiles(courseId)
+          const files = response.markdown_name_list || []
+          setMarkdownFiles(files)
+
+          // Determine which file should be selected
+          const stored = getStoredSelectedFile()
+          const currentSelection = stored || selectedMarkdownFile
+          let fileToSelect: string | null = null
+
+          if (files.length === 0) {
+            fileToSelect = null
+          } else if (currentSelection && files.includes(currentSelection)) {
+            // Keep current selection if it still exists
+            fileToSelect = currentSelection
+          } else {
+            // Otherwise, select first file
+            fileToSelect = files[0]
+          }
+
+          // Update the selected file
+          setSelectedMarkdownFile(fileToSelect)
+
+          // Refresh the content of the selected markdown file
+          if (fileToSelect) {
+            try {
+              setIsLoadingMarkdown(true)
+              const contentResponse = await getCourseMarkdownFileContent(courseId, fileToSelect)
+              setMarkdownContent(contentResponse.content || "")
+            } catch (error) {
+              console.error("Failed to refresh markdown content:", error)
+              setMarkdownContent("")
+            } finally {
+              setIsLoadingMarkdown(false)
+            }
+          } else {
+            setMarkdownContent("")
+          }
+        } catch (error) {
+          console.error("Failed to refresh markdown files:", error)
+        }
+      }
+
+      refreshMarkdownFiles()
+    } else if (messagesCount !== undefined) {
+      // Update the ref even if count didn't increase (to handle initial load)
+      previousMessagesCountRef.current = messagesCount
+    }
+  }, [messagesCount, courseId])
+
+  // Fetch markdown content when selected file changes
+  useEffect(() => {
+    const fetchMarkdownContent = async () => {
+      if (!courseId || !selectedMarkdownFile) {
+        setMarkdownContent("")
+        return
+      }
+
+      setIsLoadingMarkdown(true)
+      try {
+        const response = await getCourseMarkdownFileContent(courseId, selectedMarkdownFile)
+        setMarkdownContent(response.content || "")
+      } catch (error) {
+        console.error("Failed to fetch markdown content:", error)
+        setMarkdownContent("")
+      } finally {
+        setIsLoadingMarkdown(false)
+      }
+    }
+
+    fetchMarkdownContent()
+  }, [courseId, selectedMarkdownFile])
+
+  // Handle clicks outside version dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        versionDropdownRef.current &&
+        !versionDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowVersionDropdown(false)
+      }
+    }
+
+    if (showVersionDropdown) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showVersionDropdown])
+
 
   return (
     <div className={`h-screen ${getBgColor()} flex flex-col`}>
       {/* Fixed Header Section */}
       <div className="flex-shrink-0 p-6 pb-0">
         <div className="mb-6">
-          <div className={`flex items-center gap-2 mb-4 ${isSwapped ? "justify-between" : ""}`}>
-            {!isSwapped && (
-              <button
-                onClick={onToggleChat}
-                className={`${getHoverBg()} rounded p-1 transition-colors`}
-                aria-label={t("outline.courseOutline.toggleChat")}
-              >
-                {isChatHidden ? (
-                  <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
-                ) : (
-                  <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+          <div className="flex items-center gap-2 mb-4 justify-between">
+            <div className="flex items-center gap-2">
+              {!isSwapped && (
+                <button
+                  onClick={onToggleChat}
+                  className={`${getHoverBg()} rounded p-1 transition-colors`}
+                  aria-label={t("outline.courseOutline.toggleChat")}
+                >
+                  {isChatHidden ? (
+                    <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  ) : (
+                    <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  )}
+                </button>
+              )}
+              <h2 className={`text-sm font-semibold ${getMutedText()} uppercase tracking-[0.4rem]`}>
+                {t("outline.courseOutline.title")}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative" ref={versionDropdownRef}>
+                <button
+                  onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+                  className={`mt-[-2.606px] mb-[-2.606px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-md ${getCardSurface()} border ${getBorderColor()} ${getTextColor()} text-sm font-medium transition-colors ${getHoverBg()} min-w-[120px] max-w-[200px]`}
+                >
+                  <span className="truncate">
+                    {markdownFiles.length === 0
+                      ? t("outline.courseOutline.empty") || "Empty"
+                      : selectedMarkdownFile || (markdownFiles.length > 0 ? markdownFiles[0] : t("outline.courseOutline.empty") || "Empty")}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform flex-shrink-0 ${showVersionDropdown ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showVersionDropdown && (
+                  <div className={`absolute top-full right-0 mt-2 rounded-md ${getCardBg()} border ${getBorderColor()} shadow-lg z-50 overflow-hidden min-w-[120px] max-w-[200px] max-h-[300px] overflow-y-auto`}>
+                    {markdownFiles.length === 0 ? (
+                      <button
+                        onClick={() => {
+                          setShowVersionDropdown(false)
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${getCardSurface()} ${getTextColor()} font-medium`}
+                      >
+                        {t("outline.courseOutline.empty") || "Empty"}
+                      </button>
+                    ) : (
+                      markdownFiles.map((fileName, index) => (
+                        <button
+                          key={fileName}
+                          onClick={() => {
+                            setSelectedMarkdownFile(fileName)
+                            setShowVersionDropdown(false)
+                          }}
+                          className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${index > 0 ? `border-t ${getBorderColor()}` : ""} ${selectedMarkdownFile === fileName
+                            ? `${getCardSurface()} ${getTextColor()} font-medium`
+                            : `${getTextColor()} ${getHoverBg()}`
+                            }`}
+                        >
+                          <span className="truncate block">{fileName}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 )}
-              </button>
-            )}
-            <h2 className={`text-sm font-semibold ${getMutedText()} uppercase tracking-[0.4rem]`}>
-              {t("outline.courseOutline.title")}
-            </h2>
-            {isSwapped && (
-              <button
-                onClick={onToggleChat}
-                className={`${getHoverBg()} rounded p-1 transition-colors`}
-                aria-label={t("outline.courseOutline.toggleChat")}
-              >
-                {isChatHidden ? (
-                  <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
-                ) : (
-                  <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
-                )}
-              </button>
-            )}
+              </div>
+              {isSwapped && (
+                <button
+                  onClick={onToggleChat}
+                  className={`${getHoverBg()} rounded p-1 transition-colors`}
+                  aria-label={t("outline.courseOutline.toggleChat")}
+                >
+                  {isChatHidden ? (
+                    <ChevronFirst className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  ) : (
+                    <ChevronLast className={`w-5 h-5 ${getMutedText()} cursor-pointer`} />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {outline.length > 0 && (
+        {(markdownContent || externalMarkdown) && (
           <div className={`w-full h-px ${getDividerColor()} mb-6`}></div>
         )}
       </div>
 
       {/* Scrollable Content Section */}
       <div className="flex-1 overflow-y-auto p-6 pt-0">
-        {outline.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <BookOpen className={`w-12 h-12 mx-auto ${theme === "light" ? "text-gray-400" : "text-[#5C6370]"} mb-4`} />
-                <p className={theme === "light" ? "text-gray-500" : "text-[#5C6370]"}>
+        {isLoadingMarkdown ? (
+          <Card className="h-full min-h-[400px]">
+            <CardContent className="h-full flex items-center justify-center p-6">
+              <div className="text-center">
+                <p className={`${theme === "light" ? "text-gray-600" : "text-[#ABB2BF]"} text-lg`}>
+                  {t("outline.courseOutline.loading") || "Loading..."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : !markdownContent && !externalMarkdown ? (
+          <Card className="h-full min-h-[400px]">
+            <CardContent className="h-full flex items-center justify-center p-6">
+              <div className="text-center">
+                <BookOpen className={`w-16 h-16 mx-auto ${theme === "light" ? "text-gray-400" : "text-[#5C6370]"} mb-4`} />
+                <p className={`${theme === "light" ? "text-gray-600" : "text-[#ABB2BF]"} text-lg`}>
                   {t("outline.courseOutline.emptyState")}
                 </p>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {outline.map((item, index) => {
-              const isExpanded = expandedModules.has(item.id)
-              const moduleNumber = index + 1
-
-              return (
-                <Card
-                  key={item.id}
-                  className={`${getCardBorder()} ${getCardBg()} ${getCardHoverBorder()} transition-colors`}
-                >
-                  <CardHeader className="py-4 px-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="mb-3">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-                            <span className={`flex-shrink-0 text-xs font-medium ${getMutedText()} tracking-[0.3rem]`}>
-                              {t("outline.courseOutline.module")} {moduleNumber}
-                            </span>
-                            {item.week && (
-                              <span className={`w-full sm:w-auto text-[10px] font-medium text-[#8DB472] ${theme === "light" ? "bg-green-50" : "bg-[#1C212C]"} tracking-wider px-2 py-1 rounded-full text-center sm:text-left`}>
-                                {t("outline.courseOutline.week")} {item.week}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className={`text-base font-semibold ${getTextColor()} py-1`}>
-                            {item.title}
-                          </h3>
-                        </div>
-                        {isExpanded && item.topics && item.topics.length > 0 && (
-                          <ul className="space-y-2 mt-3 list-disc list-inside">
-                            {item.topics.map((topic, topicIndex) => (
-                              <li key={topicIndex} className={`text-sm ${getTextColor()}`}>
-                                {topic}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => toggleModule(item.id)}
-                        className={`flex-shrink-0 w-6 h-6 rounded-full ${getHoverBg()} flex items-center justify-center transition-colors`}
-                        aria-label={isExpanded ? t("outline.courseOutline.collapseModule") : t("outline.courseOutline.expandModule")}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className={`w-4 h-4 ${theme === "light" ? "text-gray-500" : "text-[#5C6370]"}`} />
-                        ) : (
-                          <ChevronLeft className={`w-4 h-4 ${theme === "light" ? "text-gray-500" : "text-[#5C6370]"}`} />
-                        )}
-                      </button>
-                    </div>
-                  </CardHeader>
-                </Card>
-              )
-            })}
+          <div className={`prose prose-sm max-w-none ${theme === "light" ? "prose-gray" : "prose-invert"} ${getTextColor()}`}>
+            <ReactMarkdown
+              components={{
+                h1: ({ children }) => <h1 className={`text-2xl font-bold mb-4 ${getTextColor()}`}>{children}</h1>,
+                h2: ({ children }) => <h2 className={`text-xl font-semibold mb-3 ${getTextColor()}`}>{children}</h2>,
+                h3: ({ children }) => <h3 className={`text-lg font-semibold mb-2 ${getTextColor()}`}>{children}</h3>,
+                h4: ({ children }) => <h4 className={`text-base font-semibold mb-2 ${getTextColor()}`}>{children}</h4>,
+                p: ({ children }) => <p className={`mb-4 ${getTextColor()} leading-relaxed`}>{children}</p>,
+                ul: ({ children }) => <ul className={`list-disc list-inside mb-4 space-y-1 ${getTextColor()}`}>{children}</ul>,
+                ol: ({ children }) => <ol className={`list-decimal list-inside mb-4 space-y-1 ${getTextColor()}`}>{children}</ol>,
+                li: ({ children }) => <li className={`${getTextColor()}`}>{children}</li>,
+                code: ({ children }) => (
+                  <code className={`px-1.5 py-0.5 rounded text-sm ${theme === "light" ? "bg-gray-100 text-gray-800" : "bg-[#282C34] text-[#ABB2BF]"}`}>
+                    {children}
+                  </code>
+                ),
+                pre: ({ children }) => (
+                  <pre className={`p-4 rounded-lg mb-4 overflow-x-auto ${theme === "light" ? "bg-gray-100 text-gray-800" : "bg-[#282C34] text-[#ABB2BF]"}`}>
+                    {children}
+                  </pre>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className={`border-l-4 pl-4 my-4 ${theme === "light" ? "border-gray-300 text-gray-700" : "border-[#61AFEF] text-[#ABB2BF]"}`}>
+                    {children}
+                  </blockquote>
+                ),
+                a: ({ children, href }) => (
+                  <a href={href} className={`underline ${theme === "light" ? "text-blue-600 hover:text-blue-800" : "text-[#61AFEF] hover:text-[#82C6FF]"}`}>
+                    {children}
+                  </a>
+                ),
+                strong: ({ children }) => <strong className={`font-semibold ${getTextColor()}`}>{children}</strong>,
+                em: ({ children }) => <em className={`italic ${getTextColor()}`}>{children}</em>,
+                hr: () => <hr className={`my-4 ${getDividerColor()}`} />,
+              }}
+            >
+              {markdownContent || externalMarkdown || ""}
+            </ReactMarkdown>
           </div>
         )}
       </div>
     </div>
   )
 }
+
 

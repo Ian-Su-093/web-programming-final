@@ -25,14 +25,6 @@ def create_app() -> FastAPI:
         "https://localhost:5173",
         "https://wp1141-finals.web.app"
     ]
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
     
     # Required for Authlib/OAuth to handle state and redirects
     # Configure cookie security based on environment
@@ -44,6 +36,14 @@ def create_app() -> FastAPI:
         https_only=True,
         same_site="none",
         session_cookie="__session",
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Trust headers from load balancers (e.g., Cloud Run)
