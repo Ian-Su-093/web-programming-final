@@ -12,6 +12,7 @@ export function WebDesignPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [courseTitle, setCourseTitle] = useState<string>("")
+  const [hasFiles, setHasFiles] = useState(false)
   const [chatWidth, setChatWidth] = useState(66.67)
   const [isResizing, setIsResizing] = useState(false)
   const [isChatHidden, setIsChatHidden] = useState(false)
@@ -33,9 +34,15 @@ export function WebDesignPage() {
       try {
         const response = await getCourseById(id)
         setCourseTitle(response.course.name)
+        // Check if course has website files (phase is 'website')
+        // For now, always show the preview on web-design page for testing
+        // When API is ready, this will check actual files: response.course.phase === "website"
+        setHasFiles(true)
       } catch (error) {
         console.error("Failed to fetch course data:", error)
         // Keep empty title on error
+        // Still show preview for testing even if API call fails
+        setHasFiles(true)
       }
     }
 
@@ -231,6 +238,7 @@ export function WebDesignPage() {
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
                   id={id}
+                  hasFiles={hasFiles}
                 />
               </div>
 
@@ -286,6 +294,7 @@ export function WebDesignPage() {
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
                   id={id}
+                  hasFiles={hasFiles}
                 />
               </div>
             </>
@@ -302,6 +311,7 @@ export function WebDesignPage() {
             isChatHidden={isChatHidden}
             isSwapped={isSwapped}
             id={id}
+            hasFiles={hasFiles}
           />
         </div>
       )}
