@@ -68,6 +68,7 @@ export function OutlinePage() {
   const sendingRef = useRef(false) // Add this ref to track if a send is in progress
   const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollingStartTimeRef = useRef<number | null>(null)
+  const firstAssistantMessageTimeRef = useRef<number | null>(null)
   const lastMessageCountRef = useRef<number>(0)
 
   // Fetch course data and messages on mount
@@ -123,6 +124,7 @@ export function OutlinePage() {
       }
       setIsPolling(false)
       pollingStartTimeRef.current = null
+      firstAssistantMessageTimeRef.current = null
     }
   }, [id])
 
@@ -205,6 +207,7 @@ export function OutlinePage() {
     }
     setIsPolling(false)
     pollingStartTimeRef.current = null
+    firstAssistantMessageTimeRef.current = null
   }
 
   // Polling function to check for new assistant messages
@@ -233,18 +236,29 @@ export function OutlinePage() {
       setMessages(convertedMessages)
       lastMessageCountRef.current = currentMessageCount
 
-      // If we found a new assistant message, stop polling
-      if (hasNewAssistantMessage) {
-        stopPolling()
-        setIsLoading(false)
-        return
-      }
-
-      // Check if we've exceeded maximum polling duration (5 minutes)
       const now = Date.now()
       const startTime = pollingStartTimeRef.current
-      if (startTime && now - startTime > 5 * 60 * 1000) {
-        // Maximum duration reached
+
+      // If we found a new assistant message, record the time (but continue polling)
+      if (hasNewAssistantMessage && !firstAssistantMessageTimeRef.current) {
+        firstAssistantMessageTimeRef.current = now
+      }
+
+      // Check if we should stop polling:
+      // 1. If we've detected an assistant message and 6 seconds have passed since detection
+      // 2. If we've exceeded maximum polling duration (5 minutes) without any assistant message
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+      if (firstAssistantTime) {
+        // We've detected an assistant message - continue for 6 more seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+          return
+        }
+      } else if (startTime && now - startTime > 5 * 60 * 1000) {
+        // Maximum duration reached without any assistant message
         stopPolling()
         setIsLoading(false)
         console.warn("Polling timeout: No assistant response received within 5 minutes")
@@ -252,21 +266,49 @@ export function OutlinePage() {
       }
 
       // Calculate next poll interval
-      // First 30 seconds: poll every 10-15 seconds
-      // After 30 seconds: poll every 2-3 seconds
-      const elapsed = startTime ? now - startTime : 0
-      const pollInterval = elapsed < 30000 ? 12000 : 2500 // 12s initially, 2.5s after 30s
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const pollInterval = 2000 // 2 seconds
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      } else {
+        // Before assistant message: First 30 seconds: poll every 12 seconds, then every 2.5 seconds
+        const elapsed = startTime ? now - startTime : 0
+        const pollInterval = elapsed < 30000 ? 12000 : 2500 // 12s initially, 2.5s after 30s
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      }
 
       // Schedule next poll
       pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
     } catch (error) {
       console.error("Failed to poll for messages:", error)
       // Continue polling even on error (might be temporary network issue)
+      const now = Date.now()
       const startTime = pollingStartTimeRef.current
-      if (startTime) {
-        const elapsed = Date.now() - startTime
-        const pollInterval = elapsed < 30000 ? 12000 : 2500
-        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          pollingTimeoutRef.current = setTimeout(pollForMessages, 2000)
+        }
+      } else if (startTime) {
+        // Before assistant message: use adaptive intervals
+        const elapsed = now - startTime
+        if (elapsed > 5 * 60 * 1000) {
+          // Maximum duration reached
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          const pollInterval = elapsed < 30000 ? 12000 : 2500
+          pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        }
       } else {
         stopPolling()
         setIsLoading(false)
