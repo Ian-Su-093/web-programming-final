@@ -244,7 +244,6 @@ async def edit_file_content(
     payload: FileSystemEditRequest,
     service: AgentService = Depends(get_agent_service),
 ) -> FileSystemOpResponse:
-    print("edit_file_content: ", payload.search_replace_blocks)
     await service.edit_file(payload.uri, payload.search_replace_blocks)
     return FileSystemOpResponse(
         message=f"Change successfully made to {payload.uri}."
