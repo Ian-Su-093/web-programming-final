@@ -268,3 +268,10 @@ export interface CourseReactFilesResponse {
 export async function getCourseReactFiles(courseId: string): Promise<CourseReactFilesResponse> {
     return apiRequest<CourseReactFilesResponse>(`/api/v1/course/${courseId}/react`)
 }
+
+// Update course phase
+export async function updateCoursePhase(courseId: string, phase: 'markdown' | 'website'): Promise<CourseResponse> {
+    return apiRequest<CourseResponse>(`/api/v1/course/${courseId}/phase?phase=${encodeURIComponent(phase)}`, {
+        method: 'PUT',
+    })
+}

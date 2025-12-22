@@ -6,7 +6,7 @@ import { ChatSection } from "@/components/ChatSection"
 import { CourseOutline } from "@/components/CourseOutline"
 import { Sidebar } from "@/components/Sidebar"
 import type { CourseData, Message } from "@/types"
-import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage } from "@/lib/api"
+import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage, updateCoursePhase } from "@/lib/api"
 
 const mockCourseData: CourseData = {
   title: "AI-Powered Course Design with React & Next.js",
@@ -80,6 +80,12 @@ export function OutlinePage() {
 
       try {
         const response = await getCourseById(id)
+
+        // Check if course phase is 'website' - redirect to web-design page if so
+        if (response.course.phase === 'website') {
+          navigate(`/${id}/web-design`, { replace: true })
+          return
+        }
 
         // Update course title with actual name from API
         setCourseData((prev) => ({
@@ -193,9 +199,17 @@ export function OutlinePage() {
     return "bg-[#3E4451]"
   }
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (id) {
-      navigate(`/${id}/web-design`)
+      try {
+        // Update course phase to 'website' before navigating
+        await updateCoursePhase(id, 'website')
+        navigate(`/${id}/web-design`)
+      } catch (error) {
+        console.error("Failed to update course phase:", error)
+        // Still navigate even if phase update fails
+        navigate(`/${id}/web-design`)
+      }
     }
   }
 
@@ -278,9 +292,6 @@ export function OutlinePage() {
         pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
         return
       }
-
-      // Schedule next poll
-      pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
     } catch (error) {
       console.error("Failed to poll for messages:", error)
       // Continue polling even on error (might be temporary network issue)

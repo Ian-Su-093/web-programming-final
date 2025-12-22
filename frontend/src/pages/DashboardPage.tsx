@@ -178,9 +178,8 @@ export function DashboardPage() {
   }
 
   const handleCreateNewCourse = () => {
-    // Generate a unique project ID that doesn't conflict with existing projects
-    const newProjectId = generateUniqueProjectId(projects)
-    navigate(`/${newProjectId}/upload`)
+    // Navigate to upload page (course ID will be generated after upload)
+    navigate(`/upload`)
   }
 
   const handleProjectClick = (project: Project) => {

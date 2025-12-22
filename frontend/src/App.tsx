@@ -9,6 +9,7 @@ import { FullPageWebPreviewPage } from "@/pages/FullPageWebPreviewPage"
 import { TermsOfServicePage } from "@/pages/TermsOfServicePage"
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage"
 import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage"
+import { CourseUploadRedirectPage } from "@/pages/CourseUploadRedirectPage"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 
@@ -47,7 +48,8 @@ function App() {
             }
           />
           <Route path="/dashboard" element={<Navigate to="/user/dashboard" replace />} />
-          <Route path="/:id/upload" element={<UploadPage />} />
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/:id/upload" element={<CourseUploadRedirectPage />} />
           <Route path="/:id/outline" element={<OutlinePage />} />
           <Route path="/:id/web-design" element={<WebDesignPage />} />
           <Route path="/:id/web-preview" element={<FullPageWebPreviewPage />} />

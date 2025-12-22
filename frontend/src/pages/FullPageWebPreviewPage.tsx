@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { Monitor } from "lucide-react"
 import { Sandpack } from "@codesandbox/sandpack-react"
 import { getCourseById, getCourseReactFiles } from "@/lib/api"
@@ -8,6 +8,7 @@ import { getCourseById, getCourseReactFiles } from "@/lib/api"
 export function FullPageWebPreviewPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [reactFiles, setReactFiles] = useState<Record<string, string> | null>(null)
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   // Theme state
@@ -24,7 +25,13 @@ export function FullPageWebPreviewPage() {
       }
 
       try {
-        await getCourseById(id)
+        const courseResponse = await getCourseById(id)
+
+        // Check if course phase is 'markdown' - redirect to outline page if so
+        if (courseResponse.course.phase === 'markdown') {
+          navigate(`/${id}/outline`, { replace: true })
+          return
+        }
         // Fetch React files regardless, but log and set flags appropriately
         setIsLoadingFiles(true)
         try {

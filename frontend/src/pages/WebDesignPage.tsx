@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import type { MouseEvent as ReactMouseEvent } from "react"
 import "@/App.css"
 import { ChatSection } from "@/components/ChatSection"
@@ -22,6 +22,7 @@ export function WebDesignPage() {
   const panelsRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
 
   // Fetch course data and messages on mount
   useEffect(() => {
@@ -33,6 +34,12 @@ export function WebDesignPage() {
       try {
         const response = await getCourseById(id)
         setCourseTitle(response.course.name)
+
+        // Check if course phase is 'markdown' - redirect to outline page if so
+        if (response.course.phase === 'markdown') {
+          navigate(`/${id}/outline`, { replace: true })
+          return
+        }
       } catch (error) {
         console.error("Failed to fetch course data:", error)
       }
