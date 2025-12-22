@@ -3,19 +3,20 @@ import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 import { Monitor } from "lucide-react"
 import { Sandpack } from "@codesandbox/sandpack-react"
-import { getCourseById } from "@/lib/api"
+import { getCourseById, getCourseReactFiles } from "@/lib/api"
 
 export function FullPageWebPreviewPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
-  const [hasFiles, setHasFiles] = useState(false)
+  const [reactFiles, setReactFiles] = useState<Record<string, string> | null>(null)
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null
     return savedTheme || "dark"
   })
 
-  // Fetch course data to check if files exist
+  // Fetch course data and React files
   useEffect(() => {
     const fetchCourseData = async () => {
       if (!id) {
@@ -24,14 +25,89 @@ export function FullPageWebPreviewPage() {
 
       try {
         await getCourseById(id)
-        // Check if course has website files (phase is 'website')
-        // For now, always show the preview for testing
-        // When API is ready, this will check actual files: response.course.phase === "website"
-        setHasFiles(true)
+        // Fetch React files regardless, but log and set flags appropriately
+        setIsLoadingFiles(true)
+        try {
+          console.log("Fetching React files for course:", id)
+          const files = await getCourseReactFiles(id)
+          console.log("React files received from API:", files)
+          // Filter to only include the required files
+          const allowedFiles = ["index.html", "index.tsx", "index.css", "package.json"]
+          const filteredFiles: Record<string, string> = {}
+          for (const key of allowedFiles) {
+            if (files[key]) {
+              filteredFiles[key] = files[key]
+            }
+          }
+          console.log("Filtered React files:", filteredFiles)
+          // Clean package.json to remove local file dependencies that Sandpack can't resolve
+          if (filteredFiles["package.json"]) {
+            try {
+              const packageJson = JSON.parse(filteredFiles["package.json"])
+              // Remove local file dependencies
+              if (packageJson.dependencies) {
+                Object.keys(packageJson.dependencies).forEach((dep) => {
+                  if (packageJson.dependencies[dep]?.startsWith("file:")) {
+                    delete packageJson.dependencies[dep]
+                  }
+                })
+              }
+              filteredFiles["package.json"] = JSON.stringify(packageJson, null, 2)
+              console.log("Cleaned package.json:", filteredFiles["package.json"])
+            } catch (error) {
+              console.error("Failed to parse/clean package.json:", error)
+            }
+          }
+          if (Object.keys(filteredFiles).length > 0) {
+            // Ensure CSS is imported in index.tsx (Sandpack requires CSS to be imported, not linked in HTML)
+            if (filteredFiles["index.tsx"] && filteredFiles["index.css"]) {
+              const indexTsx = filteredFiles["index.tsx"]
+              // Check if CSS is already imported (look for import statement with index.css)
+              const hasCssImport = /import\s+['"].*index\.css['"]/.test(indexTsx)
+              if (!hasCssImport) {
+                // Add CSS import at the top of the file, after React imports if they exist
+                const reactImportMatch = indexTsx.match(/^import\s+.*?from\s+['"]react['"].*?\n/)
+                if (reactImportMatch) {
+                  // Insert after React imports
+                  const insertIndex = reactImportMatch[0].length
+                  filteredFiles["index.tsx"] =
+                    indexTsx.slice(0, insertIndex) +
+                    "import './index.css';\n" +
+                    indexTsx.slice(insertIndex)
+                } else {
+                  // Insert at the very beginning
+                  filteredFiles["index.tsx"] = "import './index.css';\n" + indexTsx
+                }
+                console.log("Added CSS import to index.tsx")
+              }
+            }
+
+            // Convert API response keys to Sandpack format (add leading slash)
+            // Also move index.tsx and index.css to src/ directory to match index.html references
+            const sandpackFiles: Record<string, string> = {}
+            for (const [key, value] of Object.entries(filteredFiles)) {
+              let sandpackKey = key.startsWith("/") ? key : `/${key}`
+              // Move index.tsx and index.css to src/ directory
+              if (key === "index.tsx" || key === "index.css") {
+                sandpackKey = `/src/${key}`
+              }
+              sandpackFiles[sandpackKey] = value
+            }
+            console.log("React files converted for Sandpack:", sandpackFiles)
+            setReactFiles(sandpackFiles)
+          } else {
+            console.log("No React files received from API")
+            setReactFiles(null)
+          }
+        } catch (error) {
+          console.error("Failed to fetch React files:", error)
+          setReactFiles(null)
+        } finally {
+          setIsLoadingFiles(false)
+        }
       } catch (error) {
         console.error("Failed to fetch course data:", error)
-        // Still show preview for testing even if API call fails
-        setHasFiles(true)
+        setReactFiles(null)
       }
     }
 
@@ -91,7 +167,16 @@ export function FullPageWebPreviewPage() {
       <div className="flex-1 overflow-hidden p-6 pt-0 flex flex-col">
         {/* Embedded preview - always light theme */}
         <div className="w-full flex-1 min-h-0 bg-white border border-gray-300 rounded-lg overflow-hidden flex flex-col">
-          {hasFiles ? (
+          {isLoadingFiles ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <Monitor className="w-16 h-16 mx-auto text-gray-400 mb-4 animate-pulse" />
+                <p className="text-gray-600 text-lg">
+                  {t("outline.webDesign.preview.loading")}
+                </p>
+              </div>
+            </div>
+          ) : reactFiles && Object.keys(reactFiles).length > 0 ? (
             <div className="w-full h-full flex flex-col" style={{ minHeight: 0, height: "100%" }}>
               <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
                 <Sandpack
@@ -110,209 +195,12 @@ export function FullPageWebPreviewPage() {
                     showConsole: false,
                     showConsoleButton: false,
                   }}
-                  files={{
-                    "/App.js": `import { useState } from 'react';
-
-function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <div style={{ 
-      padding: '2rem', 
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      maxWidth: '800px',
-      margin: '0 auto'
-    }}>
-      <header style={{ 
-        textAlign: 'center', 
-        marginBottom: '3rem',
-        paddingBottom: '2rem',
-        borderBottom: '2px solid #e5e7eb'
-      }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 'bold',
-          color: '#1f2937',
-          marginBottom: '0.5rem'
-        }}>
-          Welcome to Your Course Website
-        </h1>
-        <p style={{ 
-          fontSize: '1.125rem', 
-          color: '#6b7280' 
-        }}>
-          A beautiful React application built for your course
-        </p>
-      </header>
-
-      <main>
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '1rem',
-          padding: '2rem',
-          marginBottom: '2rem',
-          color: 'white',
-          textAlign: 'center'
-        }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
-            Interactive Counter
-          </h2>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-            {count}
-          </div>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button
-              onClick={() => setCount(count - 1)}
-              style={{
-                padding: '0.75rem 1.5rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                border: '2px solid white',
-                borderRadius: '0.5rem',
-                color: 'white',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-            >
-              Decrease
-            </button>
-            <button
-              onClick={() => setCount(count + 1)}
-              style={{
-                padding: '0.75rem 1.5rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                border: '2px solid white',
-                borderRadius: '0.5rem',
-                color: 'white',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-            >
-              Increase
-            </button>
-            <button
-              onClick={() => setCount(0)}
-              style={{
-                padding: '0.75rem 1.5rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                border: '2px solid white',
-                borderRadius: '0.5rem',
-                color: 'white',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f9fafb',
-            borderRadius: '0.75rem',
-            border: '1px solid #e5e7eb'
-          }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: '#1f2937' }}>
-              Feature 1
-            </h3>
-            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
-              This is a sample feature card. Your course website will have custom content here.
-            </p>
-          </div>
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f9fafb',
-            borderRadius: '0.75rem',
-            border: '1px solid #e5e7eb'
-          }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: '#1f2937' }}>
-              Feature 2
-            </h3>
-            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
-              Another feature card showcasing the layout and design of your website.
-            </p>
-          </div>
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f9fafb',
-            borderRadius: '0.75rem',
-            border: '1px solid #e5e7eb'
-          }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: '#1f2937' }}>
-              Feature 3
-            </h3>
-            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
-              A third feature card to demonstrate the responsive grid layout.
-            </p>
-          </div>
-        </div>
-
-        <footer style={{
-          textAlign: 'center',
-          paddingTop: '2rem',
-          borderTop: '2px solid #e5e7eb',
-          color: '#6b7280'
-        }}>
-          <p>Built with React • Course Website Preview</p>
-        </footer>
-      </main>
-    </div>
-  );
-}
-
-export default App;`,
-                    "/index.js": `import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);`,
-                    "/index.html": `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Course Website</title>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`,
-                    "/package.json": `{
-  "name": "course-website",
-  "version": "1.0.0",
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  }
-}`,
-                  }}
+                  files={reactFiles}
                   customSetup={{
                     dependencies: {
                       react: "^18.2.0",
                       "react-dom": "^18.2.0",
+                      "react-router-dom": "^6.0.0",
                     },
                   }}
                 />

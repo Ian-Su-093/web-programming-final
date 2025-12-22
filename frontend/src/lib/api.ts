@@ -258,3 +258,13 @@ export async function getCourseMarkdownFiles(courseId: string): Promise<CourseMa
 export async function getCourseMarkdownFileContent(courseId: string, path: string): Promise<CourseMarkdownFileContentResponse> {
     return apiRequest<CourseMarkdownFileContentResponse>(`/api/v1/course/${courseId}/files/markdown/content?path=${encodeURIComponent(path)}`)
 }
+
+// React files types based on OpenAPI schema
+export interface CourseReactFilesResponse {
+    [key: string]: string
+}
+
+// Get react files for a course
+export async function getCourseReactFiles(courseId: string): Promise<CourseReactFilesResponse> {
+    return apiRequest<CourseReactFilesResponse>(`/api/v1/course/${courseId}/react`)
+}
