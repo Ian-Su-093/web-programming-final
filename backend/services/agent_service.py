@@ -83,14 +83,42 @@ class AgentService:
             ) from exc
 
         # 2. Parse blocks
+        blocks = []
+
+        # 2.1 <|edit_separator|>
+        if "<|edit_separator|>" in search_replace_blocks:
+            parts = search_replace_blocks.split("<|edit_separator|>")
+            if len(parts) >= 2:
+                blocks.append((parts[0], parts[1]))
         
-        pattern = re.compile(
-            r"(?:^|\n)(.*?)\n>>>>>\n(.*?)\n<<<<<", 
-            re.DOTALL
+        # 2.2 >>>>> / <<<<<
+        if not blocks:
+            pattern = re.compile(
+                r"(?:^|\n)(.*?)\n>>>>>\n(.*?)\n<<<<<", 
+                re.DOTALL
+            )
+            blocks = pattern.findall(search_replace_blocks)
+        
+        # 2.3 SEARCH / REPLACE
+        if not blocks:
+            pattern_search_replace = re.compile(
+                r"<<<<<<< SEARCH\n(.*?)\n=======\n(.*?)\n>>>>>>> REPLACE",
+                re.DOTALL
+            )
+            blocks = pattern_search_replace.findall(search_replace_blocks)
+
+        # 2.4 error but tell agent
+        if not blocks:
+         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Could not parse search/replace blocks. Supported formats:\n"
+                "1. CODE... <|edit_separator|> ...REPLACEMENT\n"
+                "2. ...\n>>>>>\n...\n<<<<<\n"
+                "3. If search/replace fails, consider using the rewrite_file tool to overwrite the entire file."
+            )
         )
-        
-        blocks = pattern.findall(search_replace_blocks)
-            
+
         new_content = content_str
         
         for search_block, replace_block in blocks:

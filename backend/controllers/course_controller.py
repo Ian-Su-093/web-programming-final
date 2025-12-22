@@ -342,3 +342,33 @@ async def get_course_markdown_file_content(
     content = await service.get_course_markdown_file_content(course_id, user, path)
 
     return CourseMarkdownFileContentResponse(status="success", content=content)
+
+@router.get(
+    "/{course_id}/react",
+    summary="Get react files for the course",
+    response_model=dict[str, str],
+     responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
+            "description": "Course not found",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": ErrorResponse,
+            "description": "User does not have permission to access this course",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "User not authenticated",
+        }
+    }
+)
+@required_login
+async def get_react_files(
+    request: Request,
+    course_id: str,
+    service: CourseService = Depends(get_course_service),
+) -> dict[str, str]:
+    user_dict = request.session["user"]
+    user = UserModel(**user_dict)
+    
+    return await service.get_react_files(course_id, user)

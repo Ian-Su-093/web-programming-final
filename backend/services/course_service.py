@@ -315,6 +315,20 @@ class CourseService:
     async def update_course_phase(self, course_id: str, user: UserModel, phase: Phase) -> CourseModel:
         await self.get_course_by_id(course_id, user)
         
+        # Check if markdown files exist before changing phase
+        prefix = f"{user.id}/{course_id}/"
+        markdown_files = await self._storage_repository.fuzzy_filename_search_from_storage(
+            query="*.md", 
+            include_pattern=True, 
+            destination_blob_path=prefix
+        )
+        
+        if not markdown_files:
+             raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot change phase: No markdown (.md) files found in the course.",
+            )
+        
         updated_course = await self._repository.update_course_phase(course_id, phase)
         
         if not updated_course:
@@ -324,3 +338,37 @@ class CourseService:
             )
             
         return updated_course
+
+    async def get_react_files(self, course_id: str, user: UserModel) -> dict[str, str]:
+        # 1. Verify course ownership
+        await self.get_course_by_id(course_id, user)
+        
+        prefix = f"{user.id}/{course_id}/"
+        
+        # 2. Search for files under any 'reactfile' directory
+        files = await self._storage_repository.fuzzy_filename_search_from_storage(
+            query="*/reactfile/*", 
+            include_pattern=True, 
+            destination_blob_path=prefix
+        )
+        
+        result = {}
+        for file_path in files:
+            # Extract filename
+            filename = file_path.split("/")[-1]
+            if not filename:
+                continue
+                
+            try:
+                content = await self._storage_repository.read_file_from_storage_string(
+                    destination_blob_path=file_path,
+                    start_line=None,
+                    end_line=None,
+                    page=None
+                )
+                result[filename] = content
+            except Exception as e:
+                print(f"Failed to read react file {file_path}: {e}")
+                continue
+                
+        return result
