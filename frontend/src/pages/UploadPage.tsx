@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar"
 import { createCourse } from "@/lib/api"
 
 const MAX_FILES = 10
+const MAX_TOTAL_SIZE = 31 * 1024 * 1024 // 31MB in bytes
 
 export function UploadPage() {
   const { t } = useTranslation()
@@ -109,9 +110,12 @@ export function UploadPage() {
     return "hover:bg-[#282C34]"
   }
 
-  const validateFiles = (files: File[], currentFileCount: number) => {
+  const validateFiles = (files: File[], currentFiles: File[]) => {
     const validFiles: File[] = []
     let validationError: string | null = null
+
+    // Calculate current total size
+    const currentTotalSize = currentFiles.reduce((sum, file) => sum + file.size, 0)
 
     for (const file of files) {
       const isPdf =
@@ -123,6 +127,13 @@ export function UploadPage() {
         continue
       }
 
+      // Check if adding this file would exceed total size limit
+      const newTotalSize = currentTotalSize + file.size
+      if (newTotalSize > MAX_TOTAL_SIZE) {
+        validationError = t("upload.errors.maxTotalSizeExceeded") || `Total file size cannot exceed ${(MAX_TOTAL_SIZE / (1024 * 1024)).toFixed(0)}MB`
+        continue
+      }
+
       validFiles.push(file)
     }
 
@@ -131,10 +142,10 @@ export function UploadPage() {
       return []
     }
 
-    const newCount = currentFileCount + validFiles.length
+    const newCount = currentFiles.length + validFiles.length
 
     if (newCount > MAX_FILES) {
-      const allowedCount = MAX_FILES - currentFileCount
+      const allowedCount = MAX_FILES - currentFiles.length
       if (allowedCount > 0) {
         setError(t("upload.errors.maxFilesExceeded", { maxFiles: MAX_FILES, allowedCount }))
         return validFiles.slice(0, allowedCount)
@@ -150,7 +161,7 @@ export function UploadPage() {
 
   const addFiles = (newFiles: File[]) => {
     setSelectedFiles((prev) => {
-      const validFiles = validateFiles(newFiles, prev.length)
+      const validFiles = validateFiles(newFiles, prev)
       if (validFiles.length > 0) {
         return [...prev, ...validFiles]
       }
@@ -232,6 +243,13 @@ export function UploadPage() {
 
     if (selectedFiles.length > MAX_FILES) {
       setError(t("upload.errors.maxFilesReached", { maxFiles: MAX_FILES }))
+      return
+    }
+
+    // Check total file size
+    const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
+    if (totalSize > MAX_TOTAL_SIZE) {
+      setError(t("upload.errors.maxTotalSizeExceeded") || `Total file size cannot exceed ${(MAX_TOTAL_SIZE / (1024 * 1024)).toFixed(0)}MB`)
       return
     }
 

@@ -6,7 +6,7 @@ import { ChatSection } from "@/components/ChatSection"
 import { CourseOutline } from "@/components/CourseOutline"
 import { Sidebar } from "@/components/Sidebar"
 import type { CourseData, Message } from "@/types"
-import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage, updateCoursePhase } from "@/lib/api"
+import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage, updateCoursePhase, getCourseMarkdownFiles } from "@/lib/api"
 
 const mockCourseData: CourseData = {
   title: "AI-Powered Course Design with React & Next.js",
@@ -60,6 +60,7 @@ export function OutlinePage() {
   const [isChatHidden, setIsChatHidden] = useState(false)
   const [isSwapped, setIsSwapped] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [hasMarkdownFiles, setHasMarkdownFiles] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -119,8 +120,24 @@ export function OutlinePage() {
       }
     }
 
+    const fetchMarkdownFiles = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getCourseMarkdownFiles(id)
+        const files = response.markdown_name_list || []
+        setHasMarkdownFiles(files.length > 0)
+      } catch (error) {
+        console.error("Failed to fetch markdown files:", error)
+        setHasMarkdownFiles(false)
+      }
+    }
+
     fetchCourseData()
     fetchMessages()
+    fetchMarkdownFiles()
 
     // Cleanup polling on unmount or id change
     return () => {
@@ -133,6 +150,25 @@ export function OutlinePage() {
       firstAssistantMessageTimeRef.current = null
     }
   }, [id])
+
+  // Refresh markdown files when messages change (after agent replies)
+  useEffect(() => {
+    const refreshMarkdownFiles = async () => {
+      if (!id) {
+        return
+      }
+
+      try {
+        const response = await getCourseMarkdownFiles(id)
+        const files = response.markdown_name_list || []
+        setHasMarkdownFiles(files.length > 0)
+      } catch (error) {
+        console.error("Failed to refresh markdown files:", error)
+      }
+    }
+
+    refreshMarkdownFiles()
+  }, [messages, id])
 
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
@@ -476,6 +512,7 @@ export function OutlinePage() {
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
                   onNextStep={handleNextStep}
+                  canProceedToNextStep={hasMarkdownFiles}
                 />
               </div>
             </>
@@ -490,6 +527,7 @@ export function OutlinePage() {
                   isSwapped={isSwapped}
                   courseTitle={courseData.title}
                   onNextStep={handleNextStep}
+                  canProceedToNextStep={hasMarkdownFiles}
                 />
               </div>
 

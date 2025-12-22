@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Sun, Moon, Monitor, Languages } from "lucide-react"
+import { User, LogOut, LayoutDashboard, Settings, HelpCircle, Sun, Moon, Monitor, Languages, ChevronDown, ChevronLeft, BookOpen, Upload, FileText, Palette, MessageCircle, AlertCircle, Mail } from "lucide-react"
 import type { Project } from "@/types"
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n/config"
@@ -35,6 +35,14 @@ export function DashboardPage() {
   const { t } = useTranslation()
   const { user, logout, updatePreferences } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
+
+  // Help center section collapse state
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set([
+    "getting-started", "uploading-files", "creating-outline", "designing-website", "faqs", "troubleshooting", "contact"
+  ]))
+
+  // Table of contents collapse state
+  const [isTocExpanded, setIsTocExpanded] = useState(true)
 
   // Determine active tab from route
   const getActiveTab = (): "dashboard" | "preferences" | "help-center" => {
@@ -459,6 +467,59 @@ export function DashboardPage() {
     return "hover:bg-[#282C34]"
   }
 
+  // Help center helper functions
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(sectionId)) {
+        next.delete(sectionId)
+      } else {
+        next.add(sectionId)
+      }
+      return next
+    })
+  }
+
+  const scrollToSection = (sectionId: string) => {
+    // Expand section if collapsed first
+    const needsExpansion = !expandedSections.has(sectionId)
+    if (needsExpansion) {
+      setExpandedSections((prev) => new Set(prev).add(sectionId))
+    }
+
+    // Use setTimeout to wait for DOM update if section was expanded
+    setTimeout(() => {
+      const element = document.getElementById(sectionId)
+      const scrollContainer = document.querySelector('main.overflow-auto')
+
+      if (element && scrollContainer) {
+        // Calculate offset to account for any headers
+        const offset = 20
+        const containerRect = scrollContainer.getBoundingClientRect()
+        const elementRect = element.getBoundingClientRect()
+
+        // Calculate position relative to the scroll container
+        const scrollPosition = scrollContainer.scrollTop
+        const elementTop = elementRect.top - containerRect.top + scrollPosition
+
+        scrollContainer.scrollTo({
+          top: elementTop - offset,
+          behavior: "smooth"
+        })
+      } else if (element) {
+        // Fallback to window scroll if container not found
+        const offset = 100
+        const elementPosition = element.getBoundingClientRect().top
+        const offsetPosition = elementPosition + window.pageYOffset - offset
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        })
+      }
+    }, needsExpansion ? 150 : 0)
+  }
+
   const getStepColor = (step: string) => {
     // Compare with translated strings
     if (step === t("dashboard.statistics.outlineStage") || step === "Outline stage") {
@@ -824,9 +885,200 @@ export function DashboardPage() {
 
                 {activeTab === "help-center" && (
                   <div>
-                    <h2 className={`text-lg font-semibold ${getTextColor()} mb-6`}>{t("helpCenter.title")}</h2>
-                    <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} p-6 w-full`}>
-                      <p className={`text-sm ${getMutedText()}`}>{t("helpCenter.content")}</p>
+                    <div className="flex items-center gap-3 mb-6">
+                      <BookOpen className="w-7 h-7 text-[#61AFEF]" />
+                      <h2 className={`text-3xl font-semibold ${getTextColor()}`}>{t("helpCenter.title")}</h2>
+                    </div>
+
+                    {/* Table of Contents */}
+                    <section className={`rounded-2xl border ${getBorderColor()} ${getCardBg()} w-full overflow-hidden`}>
+                      <button
+                        onClick={() => setIsTocExpanded(!isTocExpanded)}
+                        className="w-full px-6 py-4 flex items-center justify-between transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-5 h-5 text-[#61AFEF]" />
+                          <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.tableOfContents.title")}</h3>
+                        </div>
+                        <div className={`rounded-full p-1.5 ${getHoverBg()} transition-colors`}>
+                          {isTocExpanded ? (
+                            <ChevronDown className={`w-5 h-5 ${getTextColor()} transition-transform`} />
+                          ) : (
+                            <ChevronLeft className={`w-5 h-5 ${getTextColor()} transition-transform`} />
+                          )}
+                        </div>
+                      </button>
+                      {isTocExpanded && (
+                        <nav className="px-6 pb-6 space-y-2">
+                          {[
+                            { id: "getting-started", icon: BookOpen, label: t("helpCenter.gettingStarted.title") },
+                            { id: "uploading-files", icon: Upload, label: t("helpCenter.uploadingFiles.title") },
+                            { id: "creating-outline", icon: FileText, label: t("helpCenter.creatingOutline.title") },
+                            { id: "designing-website", icon: Palette, label: t("helpCenter.designingWebsite.title") },
+                            { id: "faqs", icon: MessageCircle, label: t("helpCenter.faqs.title") },
+                            { id: "troubleshooting", icon: AlertCircle, label: t("helpCenter.troubleshooting.title") },
+                            { id: "contact", icon: Mail, label: t("helpCenter.contact.title") },
+                          ].map(({ id, icon: Icon, label }) => (
+                            <button
+                              key={id}
+                              onClick={() => scrollToSection(id)}
+                              className={`w-full text-left px-3 py-2 rounded-md ${getHoverBg()} transition-colors flex items-center gap-2 group`}
+                            >
+                              <Icon className="w-4 h-4 text-[#61AFEF] group-hover:text-[#82C6FF] transition-colors" />
+                              <span className={`text-sm ${getTextColor()} group-hover:text-[#61AFEF] transition-colors`}>{label}</span>
+                            </button>
+                          ))}
+                        </nav>
+                      )}
+                    </section>
+                    <div className="my-10"></div>
+
+                    {/* Getting Started */}
+                    <section id="getting-started" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <BookOpen className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.gettingStarted.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.gettingStarted.description")}</p>
+                        <ol className="list-decimal list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.gettingStarted.step1")}</li>
+                          <li>{t("helpCenter.gettingStarted.step2")}</li>
+                          <li>{t("helpCenter.gettingStarted.step3")}</li>
+                          <li>{t("helpCenter.gettingStarted.step4")}</li>
+                        </ol>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Uploading Files */}
+                    <section id="uploading-files" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Upload className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.uploadingFiles.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.uploadingFiles.description")}</p>
+                        <ul className="list-disc list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.uploadingFiles.tip1")}</li>
+                          <li>{t("helpCenter.uploadingFiles.tip2")}</li>
+                          <li>{t("helpCenter.uploadingFiles.tip3")}</li>
+                          <li>{t("helpCenter.uploadingFiles.tip4")}</li>
+                        </ul>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Creating Course Outline */}
+                    <section id="creating-outline" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <FileText className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.creatingOutline.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.creatingOutline.description")}</p>
+                        <ul className="list-disc list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.creatingOutline.tip1")}</li>
+                          <li>{t("helpCenter.creatingOutline.tip2")}</li>
+                          <li>{t("helpCenter.creatingOutline.tip3")}</li>
+                          <li>{t("helpCenter.creatingOutline.tip4")}</li>
+                        </ul>
+                        <p className="mt-4">{t("helpCenter.creatingOutline.note")}</p>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Designing Website */}
+                    <section id="designing-website" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Palette className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.designingWebsite.title")}</h3>
+                      </div>
+                      <div className={`space-y-3 text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.designingWebsite.description")}</p>
+                        <ul className="list-disc list-inside space-y-2 ml-2">
+                          <li>{t("helpCenter.designingWebsite.tip1")}</li>
+                          <li>{t("helpCenter.designingWebsite.tip2")}</li>
+                          <li>{t("helpCenter.designingWebsite.tip3")}</li>
+                          <li>{t("helpCenter.designingWebsite.tip4")}</li>
+                        </ul>
+                        <p className="mt-4">{t("helpCenter.designingWebsite.preview")}</p>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* FAQs */}
+                    <section id="faqs" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <MessageCircle className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.faqs.title")}</h3>
+                      </div>
+                      <div className={`space-y-4 text-sm ${getMutedText()}`}>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q1.question")}</h4>
+                          <p>{t("helpCenter.faqs.q1.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q2.question")}</h4>
+                          <p>{t("helpCenter.faqs.q2.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q3.question")}</h4>
+                          <p>{t("helpCenter.faqs.q3.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q4.question")}</h4>
+                          <p>{t("helpCenter.faqs.q4.answer")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2`}>{t("helpCenter.faqs.q5.question")}</h4>
+                          <p>{t("helpCenter.faqs.q5.answer")}</p>
+                        </div>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Troubleshooting */}
+                    <section id="troubleshooting" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <AlertCircle className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.troubleshooting.title")}</h3>
+                      </div>
+                      <div className={`space-y-4 text-sm ${getMutedText()}`}>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2 flex items-center gap-2`}>
+                            <AlertCircle className="w-4 h-4 text-[#E5C07B]" />
+                            {t("helpCenter.troubleshooting.issue1.title")}
+                          </h4>
+                          <p>{t("helpCenter.troubleshooting.issue1.solution")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2 flex items-center gap-2`}>
+                            <AlertCircle className="w-4 h-4 text-[#E5C07B]" />
+                            {t("helpCenter.troubleshooting.issue2.title")}
+                          </h4>
+                          <p>{t("helpCenter.troubleshooting.issue2.solution")}</p>
+                        </div>
+                        <div className={`p-4 rounded-lg ${getCardSurface()} border ${getBorderColor()}`}>
+                          <h4 className={`font-semibold ${getTextColor()} mb-2 flex items-center gap-2`}>
+                            <AlertCircle className="w-4 h-4 text-[#E5C07B]" />
+                            {t("helpCenter.troubleshooting.issue3.title")}
+                          </h4>
+                          <p>{t("helpCenter.troubleshooting.issue3.solution")}</p>
+                        </div>
+                      </div>
+                    </section>
+                    <div className={`border-t ${getBorderColor()} my-6`}></div>
+
+                    {/* Contact Support */}
+                    <section id="contact" className="w-full pb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Mail className="w-5 h-5 text-[#61AFEF]" />
+                        <h3 className={`text-xl font-semibold ${getTextColor()}`}>{t("helpCenter.contact.title")}</h3>
+                      </div>
+                      <div className={`text-sm ${getMutedText()}`}>
+                        <p>{t("helpCenter.contact.description")}</p>
+                      </div>
                     </section>
                   </div>
                 )}

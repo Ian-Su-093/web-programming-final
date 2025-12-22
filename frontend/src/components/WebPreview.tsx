@@ -11,9 +11,10 @@ interface WebPreviewProps {
   isChatHidden: boolean
   isSwapped?: boolean
   id?: string
+  refreshKey?: number
 }
 
-export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidden, isSwapped = false, id }: WebPreviewProps) {
+export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidden, isSwapped = false, id, refreshKey }: WebPreviewProps) {
   const { t } = useTranslation()
   const [reactFiles, setReactFiles] = useState<Record<string, string> | null>(null)
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
@@ -114,7 +115,7 @@ export function WebPreview({ onToggleChat, onHidePreview, onShowChat, isChatHidd
     }
 
     fetchReactFiles()
-  }, [id])
+  }, [id, refreshKey])
 
   // Listen for theme changes
   useEffect(() => {

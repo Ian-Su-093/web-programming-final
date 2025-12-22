@@ -121,7 +121,86 @@
   },
   "helpCenter": {
     "title": "Help Center",
-    "content": "Help content will be displayed here."
+    "content": "Help content will be displayed here.",
+    "tableOfContents": {
+      "title": "Table of Contents"
+    },
+    "gettingStarted": {
+      "title": "Getting Started",
+      "description": "Welcome to Course Craft! Follow these simple steps to create your first course:",
+      "step1": "Sign in with your Google account to access the platform",
+      "step2": "Click 'Create New Course' on your dashboard to start a new project",
+      "step3": "Upload your course materials (PDF files) - up to 10 files per course",
+      "step4": "Follow the guided workflow to generate and refine your course outline, then design your website"
+    },
+    "uploadingFiles": {
+      "title": "Uploading Course Materials",
+      "description": "Upload your course materials to help our AI understand your content and generate a comprehensive outline:",
+      "tip1": "Only PDF files are currently supported",
+      "tip2": "You can upload up to 10 PDF files per course",
+      "tip3": "Drag and drop files directly onto the upload area, or click 'Browse files' to select from your computer",
+      "tip4": "Make sure your PDFs contain clear, readable text for best results"
+    },
+    "creatingOutline": {
+      "title": "Creating Your Course Outline",
+      "description": "After uploading your materials, our AI will generate an initial course outline. You can refine it through conversation:",
+      "tip1": "Use the chat interface to request changes, add modules, or modify content",
+      "tip2": "Ask for more detail on specific topics or request different learning approaches",
+      "tip3": "Edit the course title directly by clicking on it",
+      "tip4": "View different versions of your outline and compare changes",
+      "note": "The outline will update in real-time as you chat with the AI assistant. You can expand or collapse modules to focus on specific sections."
+    },
+    "designingWebsite": {
+      "title": "Designing Your Course Website",
+      "description": "Once your outline is ready, transform it into a beautiful, interactive course website:",
+      "tip1": "Use the chat interface to customize the layout, colors, and styling of your website",
+      "tip2": "Request specific design elements like headers, sections, or interactive components",
+      "tip3": "Preview your website in real-time as you make changes",
+      "tip4": "Open the full-page preview in a new tab to see how it will look to your students",
+      "preview": "The web preview updates automatically as you modify the design. You can swap the chat and preview panels for a better view."
+    },
+    "faqs": {
+      "title": "Frequently Asked Questions",
+      "q1": {
+        "question": "What file formats are supported?",
+        "answer": "Currently, Course Craft only supports PDF files. Make sure your course materials are saved as PDFs before uploading."
+      },
+      "q2": {
+        "question": "How many files can I upload?",
+        "answer": "You can upload up to 10 PDF files per course. This limit helps ensure optimal processing and outline generation."
+      },
+      "q3": {
+        "question": "Can I edit my course after creating it?",
+        "answer": "Yes! You can always return to your course from the dashboard to modify the outline or redesign the website. However, note that certain changes may require regenerating parts of your course."
+      },
+      "q4": {
+        "question": "How does the AI assistant work?",
+        "answer": "Our AI assistant uses advanced language models to understand your course materials and generate outlines. You can chat with it naturally to refine and customize your course structure and website design."
+      },
+      "q5": {
+        "question": "Is my data secure?",
+        "answer": "Yes, we take data security seriously. Your uploaded files and course content are stored securely and are only accessible to you. Please review our Privacy Policy for more details."
+      }
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "issue1": {
+        "title": "Files won't upload",
+        "solution": "Make sure you're uploading PDF files only. Check that your files aren't corrupted and try refreshing the page. If the problem persists, try uploading fewer files at once."
+      },
+      "issue2": {
+        "title": "AI responses are slow or not appearing",
+        "solution": "AI processing can take some time, especially for complex requests. Wait a moment and check your internet connection. If responses don't appear after several minutes, try refreshing the page or rephrasing your request."
+      },
+      "issue3": {
+        "title": "Course outline or website preview not loading",
+        "solution": "Try refreshing the page. If the issue continues, check that you have a stable internet connection. You can also try navigating back to the dashboard and reopening your course."
+      }
+    },
+    "contact": {
+      "title": "Need More Help?",
+      "description": "If you can't find the answer you're looking for, please review our Terms of Service and Privacy Policy pages, or contact our support team for assistance."
+    }
   },
   "upload": {
     "title": "Upload your course materials",
@@ -145,6 +224,7 @@
       "uploadPdf": "Please upload PDF files.",
       "maxFilesExceeded": "You can only upload up to {{maxFiles}} files. Only the first {{allowedCount}} file(s) will be added.",
       "maxFilesReached": "You can only upload up to {{maxFiles}} files. Please remove some files first.",
+      "maxTotalSizeExceeded": "Total file size cannot exceed 31MB. Please remove some files first.",
       "noFilesSelected": "Please select at least one file before proceeding to the next step.",
       "courseCreationFailed": "Failed to create course. Please try again.",
       "courseNameRequired": "Please enter a course name."

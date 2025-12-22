@@ -16,9 +16,10 @@ interface ChatSectionProps {
   onCourseTitleChange?: (title: string) => void
   isEditable?: boolean
   onNextStep?: () => void
+  canProceedToNextStep?: boolean
 }
 
-export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, onShowPreview, isSwapped = false, isPreviewHidden = false, courseTitle, onCourseTitleChange, isEditable = false, onNextStep }: ChatSectionProps) {
+export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, onShowPreview, isSwapped = false, isPreviewHidden = false, courseTitle, onCourseTitleChange, isEditable = false, onNextStep, canProceedToNextStep = true }: ChatSectionProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState("")
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -270,9 +271,13 @@ export function ChatSection({ messages, onSendMessage, isLoading, onSwapPanels, 
         <div className="flex items-center gap-2 ml-auto">
           {onNextStep && (
             <button
-              onClick={onNextStep}
-              className={`px-4 py-1.5 text-sm rounded-md bg-[#61AFEF] font-medium hover:bg-[#82C6FF] transition-colors cursor-pointer ${theme === "light" ? "text-white" : "text-[#1E2025]"
-                }`}
+              onClick={canProceedToNextStep ? onNextStep : undefined}
+              disabled={!canProceedToNextStep}
+              className={`px-4 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                canProceedToNextStep
+                  ? `bg-[#61AFEF] hover:bg-[#82C6FF] cursor-pointer ${theme === "light" ? "text-white" : "text-[#1E2025]"}`
+                  : `bg-[#3E4451] opacity-50 cursor-not-allowed ${theme === "light" ? "text-gray-400" : "text-[#5C6370]"}`
+              }`}
             >
               {t("upload.nextStep")}
             </button>

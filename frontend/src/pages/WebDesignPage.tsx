@@ -6,7 +6,7 @@ import { ChatSection } from "@/components/ChatSection"
 import { WebPreview } from "@/components/WebPreview"
 import { Sidebar } from "@/components/Sidebar"
 import type { Message } from "@/types"
-import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage } from "@/lib/api"
+import { getCourseById, getMessagesByCourseId, convertMessageModelToMessage, createMessage } from "@/lib/api"
 
 export function WebDesignPage() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -18,11 +18,134 @@ export function WebDesignPage() {
   const [isPreviewHidden, setIsPreviewHidden] = useState(false)
   const [isSwapped, setIsSwapped] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [isPolling, setIsPolling] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelsRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
+  const sendingRef = useRef(false)
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingStartTimeRef = useRef<number | null>(null)
+  const firstAssistantMessageTimeRef = useRef<number | null>(null)
+  const lastMessageCountRef = useRef(0)
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+
+  // Stop polling function
+  const stopPolling = () => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current)
+      pollingTimeoutRef.current = null
+    }
+    setIsPolling(false)
+    pollingStartTimeRef.current = null
+    firstAssistantMessageTimeRef.current = null
+  }
+
+  // Polling function to check for new assistant messages
+  const pollForMessages = async () => {
+    if (!id) {
+      stopPolling()
+      return
+    }
+
+    try {
+      const response = await getMessagesByCourseId(id)
+      const convertedMessages = response.messages
+        .map(convertMessageModelToMessage)
+        .filter((msg): msg is Message => msg !== null)
+
+      // Check if we have new assistant messages (not tool messages)
+      const currentMessageCount = convertedMessages.length
+      const hasNewAssistantMessage = convertedMessages.some(
+        (msg, idx) =>
+          idx >= lastMessageCountRef.current &&
+          msg.role === "assistant" &&
+          msg.content !== "__TOOL_PROCESSING__"
+      )
+
+      // Update messages
+      setMessages(convertedMessages)
+      lastMessageCountRef.current = currentMessageCount
+
+      const now = Date.now()
+      const startTime = pollingStartTimeRef.current
+
+      // If we found a new assistant message, record the time (but continue polling)
+      if (hasNewAssistantMessage && !firstAssistantMessageTimeRef.current) {
+        firstAssistantMessageTimeRef.current = now
+        // Trigger refresh of embed website code
+        setRefreshKey((prev) => prev + 1)
+      }
+
+      // Check if we should stop polling:
+      // 1. If we've detected an assistant message and 6 seconds have passed since detection
+      // 2. If we've exceeded maximum polling duration (5 minutes) without any assistant message
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+      if (firstAssistantTime) {
+        // We've detected an assistant message - continue for 6 more seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+          return
+        }
+      } else if (startTime && now - startTime > 5 * 60 * 1000) {
+        // Maximum duration reached without any assistant message
+        stopPolling()
+        setIsLoading(false)
+        console.warn("Polling timeout: No assistant response received within 5 minutes")
+        return
+      }
+
+      // Calculate next poll interval
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const pollInterval = 2000 // 2 seconds
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      } else {
+        // Before assistant message: First 30 seconds: poll every 12 seconds, then every 2.5 seconds
+        const elapsed = startTime ? now - startTime : 0
+        const pollInterval = elapsed < 30000 ? 12000 : 2500 // 12s initially, 2.5s after 30s
+        pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        return
+      }
+    } catch (error) {
+      console.error("Failed to poll for messages:", error)
+      // Continue polling even on error (might be temporary network issue)
+      const now = Date.now()
+      const startTime = pollingStartTimeRef.current
+      const firstAssistantTime = firstAssistantMessageTimeRef.current
+
+      if (firstAssistantTime) {
+        // After assistant message detected: poll every 2 seconds
+        const timeSinceFirstAssistant = now - firstAssistantTime
+        if (timeSinceFirstAssistant > 6 * 1000) {
+          // 6 seconds have passed since first assistant message - stop polling
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          pollingTimeoutRef.current = setTimeout(pollForMessages, 2000)
+        }
+      } else if (startTime) {
+        // Before assistant message: use adaptive intervals
+        const elapsed = now - startTime
+        if (elapsed > 5 * 60 * 1000) {
+          // Maximum duration reached
+          stopPolling()
+          setIsLoading(false)
+        } else {
+          const pollInterval = elapsed < 30000 ? 12000 : 2500
+          pollingTimeoutRef.current = setTimeout(pollForMessages, pollInterval)
+        }
+      } else {
+        stopPolling()
+        setIsLoading(false)
+      }
+    }
+  }
 
   // Fetch course data and messages on mount
   useEffect(() => {
@@ -63,6 +186,7 @@ export function WebDesignPage() {
 
         console.log("Converted chat history:", convertedMessages)
         setMessages(convertedMessages)
+        lastMessageCountRef.current = convertedMessages.length
       } catch (error) {
         console.error("Failed to fetch messages:", error)
         // Keep empty messages on error
@@ -71,6 +195,11 @@ export function WebDesignPage() {
 
     fetchCourseData()
     fetchMessages()
+
+    // Cleanup polling on unmount
+    return () => {
+      stopPolling()
+    }
   }, [id])
 
   // Theme state
@@ -144,28 +273,65 @@ export function WebDesignPage() {
   }
 
   const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    if (!id) {
+      console.error("Course ID is missing")
+      return
+    }
+
+    // Prevent duplicate sends (while sending or polling)
+    if (sendingRef.current || isLoading || isPolling) {
+      return
+    }
+
+    // Stop any existing polling
+    stopPolling()
+
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
       role: "user",
-      content,
+      content: content.trim(),
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    // Add optimistic message immediately
+    setMessages((prev) => [...prev, optimisticMessage])
+    sendingRef.current = true
     setIsLoading(true)
 
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          "I understand you'd like to plan a course. This is a demo response. In a real implementation, this would connect to an AI service to generate course outlines based on your input.",
-        timestamp: new Date(),
-      }
+    try {
+      // Send the message to the backend (returns immediately)
+      const response = await createMessage(id, content)
 
-      setMessages((prev) => [...prev, assistantMessage])
+      // Replace optimistic message with real one from server
+      const realUserMessage = convertMessageModelToMessage(response.message)
+      setMessages((prev) => {
+        if (realUserMessage) {
+          const filtered = prev.filter((msg) => msg.id !== optimisticMessage.id)
+          const updated = [...filtered, realUserMessage]
+          lastMessageCountRef.current = updated.length
+          return updated
+        } else {
+          // If conversion failed, keep optimistic message for now
+          lastMessageCountRef.current = prev.length
+          return prev
+        }
+      })
+
+      // Start polling for assistant response
+      setIsPolling(true)
+      pollingStartTimeRef.current = Date.now()
+      pollingTimeoutRef.current = setTimeout(pollForMessages, 12000) // First poll after 12 seconds
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      // Remove the optimistic message on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
       setIsLoading(false)
-    }, 1000)
+      sendingRef.current = false
+    } finally {
+      // Note: We don't set isLoading to false here - it will be set to false when polling stops
+      sendingRef.current = false
+    }
   }
 
   const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -237,6 +403,7 @@ export function WebDesignPage() {
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
                   id={id}
+                  refreshKey={refreshKey}
                 />
               </div>
 
@@ -292,6 +459,7 @@ export function WebDesignPage() {
                   isChatHidden={isChatHidden}
                   isSwapped={isSwapped}
                   id={id}
+                  refreshKey={refreshKey}
                 />
               </div>
             </>
@@ -308,6 +476,7 @@ export function WebDesignPage() {
             isChatHidden={isChatHidden}
             isSwapped={isSwapped}
             id={id}
+            refreshKey={refreshKey}
           />
         </div>
       )}
