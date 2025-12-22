@@ -87,7 +87,6 @@ dmypy.json
 
 # Python dotenv files
 .env
-.env.*
 
 # Docker
 *.pid
