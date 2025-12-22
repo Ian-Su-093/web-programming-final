@@ -161,27 +161,31 @@ class CourseService:
                     print(f"Agent API returned error: {response.text}")
                 else:
                     # Process response
-                    data = response.json()
-                    new_messages_data = data.get("message_list", [])
-                    
-                    for msg_data in new_messages_data:
-                        # Skip user messages to avoid duplicating the one we just stored
-                        role = Role(msg_data["role"])
-                        if role == Role.USER:
-                            continue
+                    try:
+                        data = response.json()
+                        new_messages_data = data.get("message_list", [])
+                        
+                        for msg_data in new_messages_data:
+                            # Skip user messages to avoid duplicating the one we just stored
+                            role = Role(msg_data["role"])
+                            if role == Role.USER:
+                                continue
 
-                        new_msg = MessageModel(
-                            id="",
-                            index=0,
-                            course_id=course_id,
-                            role=role,
-                            content=msg_data.get("content"),
-                            toolCalls=msg_data.get("toolCalls"),
-                            toolCallId=msg_data.get("toolCallId"),
-                            toolName=msg_data.get("toolName"),
-                            createdAt=datetime.now(timezone.utc)
-                        )
-                        await self._message_repository.create_message(course_id, new_msg)
+                            new_msg = MessageModel(
+                                id="",
+                                index=0,
+                                course_id=course_id,
+                                role=role,
+                                content=msg_data.get("content"),
+                                toolCalls=msg_data.get("toolCalls"),
+                                toolCallId=msg_data.get("toolCallId"),
+                                toolName=msg_data.get("toolName"),
+                                createdAt=datetime.now(timezone.utc)
+                            )
+                            await self._message_repository.create_message(course_id, new_msg)
+                            
+                    except Exception as e:
+                        print(f"Failed to parse Agent API response: {e}, Response text: {response.text}")
                     
         except Exception as e:
             # Log error but don't fail the user request
